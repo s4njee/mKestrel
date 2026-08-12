@@ -225,10 +225,6 @@ pub fn hosts() -> Vec<Host> {
             retrans: 0,
             is_real: false,
         },
-        // Real hosts (E4-S6): routed to live backends. The rail keeps the
-        // design's 9 mock hosts and adds the reachable freya server.
-        freya_host(),
-        freya_nfs_host(),
     ]
 }
 
@@ -780,57 +776,10 @@ pub fn demo_state() -> DemoState {
     }
 }
 
-/// The real hosts that exist in release builds (fixtures are debug-only).
+/// Real hosts in release builds: none by default — the user adds connections
+/// (fixtures and demo hosts are debug-only).
 pub fn real_hosts() -> Vec<Host> {
-    vec![freya_host(), freya_nfs_host()]
-}
-
-/// The real SFTP host the `--sftp` demo connects to (E4-S3). Not part of the
-/// 9-host mockup rail; injected when the real backend is used.
-pub fn freya_host() -> Host {
-    Host {
-        id: "host-freya".into(),
-        name: "freya".into(),
-        group: "home".into(),
-        protocol: Protocol::Sftp,
-        address: "freya.local".into(),
-        port: 22,
-        user: "sanjee".into(),
-        auth: AuthMethod::Key,
-        key_id: Some("key-ed25519".into()),
-        initial_path: "/home/sanjee".into(),
-        options: HostOptions::default(),
-        status: HostStatus::Idle,
-        free_bytes: None,
-        rtt_ms: None,
-        mounted_at: None,
-        retrans: 0,
-        is_real: false,
-    }
-}
-
-/// The real NFSv3 host the `--nfs` demo connects to (E4-S5). Address is the
-/// IP because nfs-rs expects a resolvable socket address.
-pub fn freya_nfs_host() -> Host {
-    Host {
-        id: "host-freya-nfs".into(),
-        name: "freya".into(),
-        group: "media".into(),
-        protocol: Protocol::Nfs3,
-        address: "192.168.1.156".into(),
-        port: 2049,
-        user: "nobody".into(),
-        auth: AuthMethod::KbdInt,
-        key_id: None,
-        initial_path: "/mnt/raid6/ebooks".into(),
-        options: HostOptions::default(),
-        status: HostStatus::Idle,
-        free_bytes: Some(tib(9.8)),
-        rtt_ms: None,
-        mounted_at: None,
-        retrans: 0,
-        is_real: false,
-    }
+    Vec::new()
 }
 
 #[cfg(test)]
@@ -902,7 +851,7 @@ mod tests {
     #[test]
     fn hosts_match_mockup() {
         let hosts = hosts();
-        assert_eq!(hosts.len(), 11);
+        assert_eq!(hosts.len(), 9);
         for (name, proto, free) in [
             ("media-nas", Protocol::Nfs4, Some("4.2T")),
             ("edge-01", Protocol::Sftp, Some("38G")),
@@ -1000,7 +949,7 @@ mod tests {
     #[test]
     fn demo_state_assembles() {
         let s = demo_state();
-        assert_eq!(s.hosts.len(), 11);
+        assert_eq!(s.hosts.len(), 9);
         assert_eq!(s.listing.len(), 142);
         assert_eq!(s.selected_host_id, "host-media-nas");
         assert_eq!(s.cwd, "/export/media/films");

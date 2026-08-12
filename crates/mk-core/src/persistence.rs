@@ -142,7 +142,7 @@ mod tests {
         let state = StoredState::from_demo();
         save(&path, &state).unwrap();
         let loaded = load(&path).unwrap();
-        assert_eq!(loaded.hosts.len(), 11);
+        assert_eq!(loaded.hosts.len(), 9);
         assert_eq!(loaded.settings, state.settings);
         assert_eq!(loaded.credentials, state.credentials);
         assert_eq!(loaded.jobs.len(), 20);

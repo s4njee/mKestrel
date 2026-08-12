@@ -269,6 +269,13 @@ fn HostDialog(draft: HostDraft) -> Element {
                                 }
                             }
                         }
+                        if draft.auth == AuthMethod::Password {
+                            HostField {
+                                label: "PASSWORD",
+                                value: draft.password.clone(),
+                                onchange: move |v| patch_draft(store, |d| d.password = v),
+                            }
+                        }
                         if draft.auth == AuthMethod::Key {
                             div { class: "key-card",
                                 div { class: "key-card-main",

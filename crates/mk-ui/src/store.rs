@@ -89,6 +89,8 @@ pub struct HostDraft {
     pub port: String,
     pub user: String,
     pub auth: AuthMethod,
+    /// Password for Password-auth hosts (stored in the vault on save).
+    pub password: String,
     pub key_id: String,
     pub initial_path: String,
     pub keepalive: String,
@@ -112,6 +114,7 @@ impl HostDraft {
             port: "22".into(),
             user: "deploy".into(),
             auth: AuthMethod::Key,
+            password: String::new(),
             key_id: "key-ed25519".into(),
             initial_path: "/srv/www".into(),
             keepalive: "30".into(),
@@ -137,6 +140,7 @@ impl HostDraft {
             },
             user: host.user.clone(),
             auth: host.auth,
+            password: String::new(),
             key_id: host.key_id.clone().unwrap_or_else(|| "key-ed25519".into()),
             initial_path: host.initial_path.clone(),
             keepalive: "30".into(),
@@ -308,6 +312,9 @@ pub fn StoreProvider(children: Element, initial: Screen, store_path: Option<Stri
     let mount_store = store;
     use_effect(move || {
         let mut s = mount_store;
+        if s.hosts.read().is_empty() {
+            return; // no hosts: the empty state renders instead
+        }
         let host = s.selected_host();
         if host.is_real && host.auth == AuthMethod::Password && s.password_for(&host.id).is_none() {
             s.open_dialog(Dialog::HostPassword {
@@ -1126,6 +1133,7 @@ impl Store {
             user: draft.user.trim().to_string(),
             auth: draft.auth,
             key_id: (draft.auth == AuthMethod::Key).then(|| draft.key_id.clone()),
+            is_real: true,
             initial_path: draft.initial_path.trim().to_string(),
             options: draft.options.clone(),
             status: HostStatus::Idle,
@@ -1133,8 +1141,11 @@ impl Store {
             rtt_ms: None,
             mounted_at: None,
             retrans: 0,
-            is_real: false,
         };
+        // Store the password (if any) so the backend can authenticate.
+        if draft.auth == AuthMethod::Password && !draft.password.is_empty() {
+            self.set_password(&host.id, draft.password.clone());
+        }
         let mut hosts = self.hosts.write();
         if let Some(existing) = hosts.iter_mut().find(|h| h.id == host.id) {
             *existing = host;
