@@ -1,0 +1,15 @@
+[package]
+name = "mk-ui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+mk-core.workspace = true
+dioxus = { workspace = true, features = ["lib"] }
+chrono.workspace = true
+tokio = { version = "1", features = ["time"] }
+async-trait = "0.1"
+
+[dev-dependencies]

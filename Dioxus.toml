@@ -1,0 +1,11 @@
+[application]
+name = "mkestral"
+version = "0.1.0"
+
+# Bundle identifiers used by `dx bundle` / `dx serve` (per-platform override
+# falls back to `[bundle].identifier`).
+[bundle]
+identifier = "com.mkestral.app"
+
+[ios]
+identifier = "com.mkestral.app"

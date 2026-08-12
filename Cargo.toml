@@ -1,0 +1,39 @@
+[workspace]
+resolver = "2"
+members = [
+    "app",
+    "crates/mk-core",
+    "crates/mk-vfs",
+    "crates/mk-transfer",
+    "crates/mk-secrets",
+    "crates/mk-ui",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.97"
+authors = ["mkestral"]
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+mk-core = { path = "crates/mk-core", version = "0.1.0" }
+mk-vfs = { path = "crates/mk-vfs", version = "0.1.0" }
+mk-transfer = { path = "crates/mk-transfer", version = "0.1.0" }
+mk-secrets = { path = "crates/mk-secrets", version = "0.1.0" }
+mk-ui = { path = "crates/mk-ui", version = "0.1.0" }
+
+# Dioxus 0.7.x line (pinned at kickoff per plan.md §1).
+# Platform feature is selected by the app crate (`desktop`); mk-ui stays
+# platform-agnostic and only enables the core `lib` bundle.
+dioxus = { version = "0.7", default-features = false }
+
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.dev]
+opt-level = 1
+
+[profile.release]
+opt-level = 2

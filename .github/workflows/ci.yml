@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: macos-latest # macOS runner: Xcode present, so iOS targets resolve
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (rust-toolchain.toml drives the version)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          targets: aarch64-apple-ios, aarch64-apple-ios-sim, aarch64-linux-android
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace
+
+      - name: Desktop build
+        run: cargo build -p mkestral
+
+  # Mobile builds are a follow-up: they need the Android SDK/NDK on the runner
+  # (android-actions/setup-android) and, for iOS devices, signing. The iOS
+  # simulator bundle builds locally (see scripts/bundle-ios-sim.sh).
+  # mobile:
+  #   runs-on: macos-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: dtolnay/rust-toolchain@master
+  #       with:
+  #         targets: aarch64-apple-ios-sim, aarch64-linux-android
+  #     - uses: android-actions/setup-android@v3
+  #     - run: cargo build --target aarch64-apple-ios-sim --no-default-features --features mobile -p mkestral
+  #     - run: cargo build --target aarch64-linux-android --no-default-features --features mobile -p mkestral

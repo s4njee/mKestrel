@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><style>body{margin:0;background:#0a0b0b;font-family:-apple-system,system-ui,sans-serif}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(255,255,255,.08)}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#eef1f0;color:#0a0b0b;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#eef1f0}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(255,255,255,.12);color:#eef1f0;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11.5px/1.3 system-ui,sans-serif;color:rgba(238,241,240,.55)}.dv-card{background:#131514;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:26px;display:flex;gap:22px}.dv-opt:target .dv-oid{background:#00c48f;color:#08120e}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(238,241,240,.45)}.dv-note{margin:0 0 18px;max-width:760px;font:12.5px/1.7 system-ui,sans-serif;color:rgba(238,241,240,.5)}.dv-note b{color:rgba(238,241,240,.8);font-weight:600}a{color:#00c48f}a:hover{color:#4fe0b8}</style></helmet>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Tablet — console style from <a class="dv-oid" href="#1c">1c</a>, all six screens</span></div>
+<p class="dv-note">Landscape three-pane: <b>hosts rail</b> · <b>file table</b> · <b>inspector</b>, with the transfer queue as a persistent bottom strip. Same hairline dark palette and mono data columns as <a class="dv-oid" href="#1c">1c</a>, now with room for permissions, owner, mtime and a preview pane. <a class="dv-oid" href="#2a">2a</a>–<a class="dv-oid" href="#2c">2c</a> are iPad-sized (1194×834), <a class="dv-oid" href="#2d">2d</a> is an Android tablet (1280×800).</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a"><div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Browser — hosts rail, file table, inspector, queue strip. Two screens in one view.</div>
+<div class="dv-card">
+<div style="width:1194px;height:834px;border-radius:24px;padding:12px;box-sizing:border-box;background:#1b1d1c;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+<div style="width:100%;height:100%;border-radius:13px;overflow:hidden;background:#0b0c0c;color:#eef1f0;display:flex;flex-direction:column;font-family:-apple-system,system-ui,sans-serif">
+  <div style="display:flex;align-items:center;gap:14px;padding:5px 16px;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);border-bottom:1px solid rgba(255,255,255,.06)">
+    <span>9:41 Tue 12 Aug</span><span style="flex:1"></span><span>wifi 10.0.1.4</span><span>vpn</span><span>92%</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <span style="font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)"><span style="color:#00c48f">media-nas</span>:/export/media/<span style="color:#eef1f0">films</span></span>
+    <span style="flex:1"></span>
+    <span style="font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35);border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:4px 26px 4px 8px">filter…</span>
+    <span style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:rgba(238,241,240,.5)">SORT name↑</span>
+    <span style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:rgba(238,241,240,.5)">LIST</span>
+    <span style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:rgba(238,241,240,.3)">GRID</span>
+    <span style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:#00c48f">QUEUE 2</span>
+  </div>
+  <div style="flex:1;display:flex;min-height:0">
+
+    <div style="width:252px;flex:none;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column">
+      <div style="display:flex;gap:8px;padding:6px 14px;border-bottom:1px solid rgba(255,255,255,.06);font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.3)">
+        <span style="flex:1">HOST</span><span style="width:34px">PROTO</span><span style="width:36px;text-align:right">FREE</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(0,196,143,.07);border-left:2px solid #00c48f">
+        <span style="flex:1;font:500 12.5px ui-monospace,Menlo,monospace">media-nas</span>
+        <span style="width:34px;font:400 9.5px ui-monospace,Menlo,monospace;color:#00c48f">nfs4</span>
+        <span style="width:36px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">4.2T</span>
+      </div>
+      <div style="padding:0 14px 8px;background:rgba(0,196,143,.04);border-bottom:1px solid rgba(255,255,255,.05);border-left:2px solid #00c48f">
+        <div style="font:400 11px/19px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5);padding-left:10px">/export/media</div>
+        <div style="font:400 11px/19px ui-monospace,Menlo,monospace;color:#eef1f0;padding-left:20px">films</div>
+        <div style="font:400 11px/19px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5);padding-left:20px">series</div>
+        <div style="font:400 11px/19px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5);padding-left:20px">music</div>
+        <div style="font:400 11px/19px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5);padding-left:20px">photos</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+        <span style="flex:1;font:500 12.5px ui-monospace,Menlo,monospace">edge-01</span>
+        <span style="width:34px;font:400 9.5px ui-monospace,Menlo,monospace;color:#00c48f">sftp</span>
+        <span style="width:36px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">38G</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+        <span style="flex:1;font:500 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">backup-tank</span>
+        <span style="width:34px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">smb3</span>
+        <span style="width:36px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">—</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+        <span style="flex:1;min-width:0;font:500 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">plex-scratch</span>
+        <span style="width:34px;font:400 9.5px ui-monospace,Menlo,monospace;color:#e0a83c">nfs3</span>
+        <span style="width:36px;text-align:right;font:400 9.5px ui-monospace,Menlo,monospace;color:#e0a83c">stale</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+        <span style="flex:1;font:500 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">localhost</span>
+        <span style="width:34px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">file</span>
+        <span style="width:36px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">41G</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+        <span style="flex:1;font:500 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">nas-photos</span>
+        <span style="width:34px;font:400 9.5px ui-monospace,Menlo,monospace;color:#00c48f">nfs4</span>
+        <span style="width:36px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">1.1T</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+        <span style="flex:1;font:500 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">vault</span>
+        <span style="width:34px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">sftp</span>
+        <span style="width:36px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">512G</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+        <span style="flex:1;font:500 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">pi-relay</span>
+        <span style="width:34px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">sftp</span>
+        <span style="width:36px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">12G</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+        <span style="flex:1;font:500 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">build-cache</span>
+        <span style="width:34px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">smb3</span>
+        <span style="width:36px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">96G</span>
+      </div>
+      <div style="padding:14px 14px 6px;font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.12em;color:rgba(238,241,240,.28);border-bottom:1px solid rgba(255,255,255,.05)">RECENT</div>
+      <div style="padding:6px 14px;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5);border-bottom:1px solid rgba(255,255,255,.04)">edge-01:/srv/www/releases</div>
+      <div style="padding:6px 14px;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5);border-bottom:1px solid rgba(255,255,255,.04)">edge-01:/var/log/nginx</div>
+      <div style="padding:6px 14px;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5);border-bottom:1px solid rgba(255,255,255,.04)">backup-tank:/tank/vm</div>
+      <div style="padding:6px 14px;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5);border-bottom:1px solid rgba(255,255,255,.04)">nas-photos:/export/photos/2026</div>
+      <div style="padding:6px 14px;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5)">vault:/srv/archive</div>
+      <div style="padding:14px 14px 6px;font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.12em;color:rgba(238,241,240,.28);border-bottom:1px solid rgba(255,255,255,.05)">PINNED OFFLINE · 3</div>
+      <div style="display:flex;gap:8px;padding:6px 14px;border-bottom:1px solid rgba(255,255,255,.04);font:400 10.5px ui-monospace,Menlo,monospace"><span style="flex:1;color:rgba(238,241,240,.5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Arrival.2016.en.srt</span><span style="color:rgba(238,241,240,.3)">84K</span></div>
+      <div style="display:flex;gap:8px;padding:6px 14px;border-bottom:1px solid rgba(255,255,255,.04);font:400 10.5px ui-monospace,Menlo,monospace"><span style="flex:1;color:rgba(238,241,240,.5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">nginx.conf.bak</span><span style="color:rgba(238,241,240,.3)">2K</span></div>
+      <div style="display:flex;gap:8px;padding:6px 14px;font:400 10.5px ui-monospace,Menlo,monospace"><span style="flex:1;color:rgba(238,241,240,.5);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Whiplash.2014.mkv</span><span style="color:rgba(238,241,240,.3)">9.8G</span></div>
+      <div style="flex:1"></div>
+      <div style="padding:9px 14px;border-top:1px solid rgba(255,255,255,.07);display:flex;gap:12px;font:600 10px ui-monospace,Menlo,monospace">
+        <span style="color:#00c48f">[+] host</span><span style="color:rgba(238,241,240,.4)">keys</span><span style="color:rgba(238,241,240,.4)">prefs</span>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <div style="display:flex;gap:12px;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.07);font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.3)">
+        <span style="width:14px"></span><span style="width:66px">MODE</span><span style="flex:1">NAME</span><span style="width:58px;text-align:right">SIZE</span><span style="width:82px;text-align:right">MTIME</span><span style="width:70px;text-align:right">OWNER</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">..</span>
+        <span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">drwxr-xr-x</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">../media</span>
+        <span style="width:58px"></span><span style="width:82px"></span><span style="width:70px"></span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px;height:11px;border:1px solid rgba(238,241,240,.3);border-radius:2px;box-sizing:border-box"></span>
+        <span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">drwxr-x---</span>
+        <span style="flex:1;font:500 12.5px ui-monospace,Menlo,monospace">4K_HDR/</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">31 items</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">02-19 21:04</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px;height:11px;border:1px solid rgba(238,241,240,.3);border-radius:2px;box-sizing:border-box"></span>
+        <span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">drwxr-x---</span>
+        <span style="flex:1;font:500 12.5px ui-monospace,Menlo,monospace">Documentaries/</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">64 items</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">07-30 08:12</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span>
+        <span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">Arrival.2016.2160p.mkv</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">18.4G</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">03-12 19:44</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span>
+        <span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">Arrival.2016.en.srt</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">84K</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">03-12 19:44</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04);background:rgba(0,196,143,.08);border-left:2px solid #00c48f">
+        <span style="width:12px"></span>
+        <span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:#00c48f">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">BladeRunner2049.2017.2160p.mkv</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:#00c48f">24.1G</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">05-02 11:20</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span>
+        <span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">Dune.Part.Two.2024.mkv</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">31.7G</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">04-04 22:58</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span>
+        <span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">Heat.1995.remux.mkv</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">41.2G</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">11-27 15:03</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span>
+        <span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">Sicario.2015.mkv</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">12.9G</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">01-08 07:41</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span>
+        <span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">Sicario.2015.en.srt</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">61K</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">01-08 07:41</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span>
+        <span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">lrwxrwxrwx</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">latest <span style="color:rgba(238,241,240,.4)">→ 4K_HDR</span></span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">link</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">08-01 10:00</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">root:root</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span>
+        <span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">-rw-------</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">.metadata/</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">12 items</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">08-11 03:15</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">root:root</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span><span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">Nope.2022.2160p.mkv</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">22.8G</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">06-14 09:02</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span><span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">Oppenheimer.2023.2160p.mkv</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">46.3G</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">12-02 18:37</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span><span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">Prisoners.2013.mkv</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">14.1G</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">09-19 20:11</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span><span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">Sicario.Day.of.the.Soldado.mkv</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">13.4G</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">02-02 12:48</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span><span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">Stalker.1979.criterion.mkv</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">28.9G</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">10-05 16:20</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span><span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">TheThing.1982.remux.mkv</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">33.6G</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">07-07 23:59</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span><span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">Tinker.Tailor.2011.mkv</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">16.2G</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">05-28 08:14</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span><span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">Whiplash.2014.mkv</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">9.8G</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">03-30 17:45</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span><span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">Zodiac.2007.remux.mkv</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">37.4G</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">11-11 13:26</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span><span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">checksums.sha256</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">812K</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">08-10 22:04</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span><span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">films.nfo</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">4.1K</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">08-09 09:12</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span><span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--r--</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace">poster-cache.db</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">128M</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">08-12 09:38</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">media:media</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:14px"></span><span style="width:66px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">drwx------</span>
+        <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">.rsync-partial/</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">3 items</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">08-12 09:41</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">media:media</span>
+      </div>
+      <div style="flex:1"></div>
+      <div style="display:flex;gap:16px;align-items:center;padding:7px 16px;border-top:1px solid rgba(255,255,255,.07);font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.32)">
+        <span>142 entries · 1.9T</span><span>1 selected · 24.1G</span><span style="flex:1"></span><span>mkdir</span><span>rename</span><span>chmod</span><span style="color:#00c48f">put ↑</span><span style="color:#00c48f">get ↓</span>
+      </div>
+    </div>
+
+    <div style="width:296px;flex:none;border-left:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column">
+      <div style="padding:6px 14px;border-bottom:1px solid rgba(255,255,255,.07);font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.3)">INSPECTOR</div>
+      <div style="height:166px;background:repeating-linear-gradient(45deg,#141615 0 6px,#101211 6px 12px);border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center">
+        <span style="font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.32);letter-spacing:.06em">frame preview · 4 MB read</span>
+      </div>
+      <div style="padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.06)">
+        <div style="font:400 12.5px/17px ui-monospace,Menlo,monospace;word-break:break-all">BladeRunner2049.2017.2160p.mkv</div>
+      </div>
+      <div style="display:flex;gap:10px;padding:5px 14px;border-bottom:1px solid rgba(255,255,255,.04);font:400 10.5px ui-monospace,Menlo,monospace"><span style="width:74px;color:rgba(238,241,240,.32)">size</span><span style="color:rgba(238,241,240,.7)">24.1G / 25,884,266,496 B</span></div>
+      <div style="display:flex;gap:10px;padding:5px 14px;border-bottom:1px solid rgba(255,255,255,.04);font:400 10.5px ui-monospace,Menlo,monospace"><span style="width:74px;color:rgba(238,241,240,.32)">mode</span><span style="color:rgba(238,241,240,.7)">0644 -rw-r--r--</span></div>
+      <div style="display:flex;gap:10px;padding:5px 14px;border-bottom:1px solid rgba(255,255,255,.04);font:400 10.5px ui-monospace,Menlo,monospace"><span style="width:74px;color:rgba(238,241,240,.32)">owner</span><span style="color:rgba(238,241,240,.7)">media:media 1000:1000</span></div>
+      <div style="display:flex;gap:10px;padding:5px 14px;border-bottom:1px solid rgba(255,255,255,.04);font:400 10.5px ui-monospace,Menlo,monospace"><span style="width:74px;color:rgba(238,241,240,.32)">mtime</span><span style="color:rgba(238,241,240,.7)">2026-05-02 11:20:44</span></div>
+      <div style="display:flex;gap:10px;padding:5px 14px;border-bottom:1px solid rgba(255,255,255,.04);font:400 10.5px ui-monospace,Menlo,monospace"><span style="width:74px;color:rgba(238,241,240,.32)">codec</span><span style="color:rgba(238,241,240,.7)">hevc 3840×2160 · dts-hd</span></div>
+      <div style="display:flex;gap:10px;padding:5px 14px;border-bottom:1px solid rgba(255,255,255,.06);font:400 10.5px ui-monospace,Menlo,monospace"><span style="width:74px;color:rgba(238,241,240,.32)">inode</span><span style="color:rgba(238,241,240,.7)">8419772</span></div>
+      <div style="padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.06)">
+        <div style="display:flex;justify-content:space-between;font:400 10px ui-monospace,Menlo,monospace;color:#00c48f"><span>downloading</span><span>61% · 8.4M/s</span></div>
+        <div style="display:flex;gap:1px;height:3px;margin-top:7px"><div style="flex:61;background:#00c48f"></div><div style="flex:39;background:rgba(255,255,255,.08)"></div></div>
+        <div style="font:400 9.5px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.32);margin-top:5px">→ localhost:/Downloads · eta 19m</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;padding:12px 14px">
+        <span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#0b0f0e;background:#00c48f;border-radius:4px;padding:6px 10px">GET ↓</span>
+        <span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:rgba(238,241,240,.6);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:6px 10px">PIN OFFLINE</span>
+        <span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:rgba(238,241,240,.6);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:6px 10px">CHMOD</span>
+        <span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:rgba(238,241,240,.6);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:6px 10px">RENAME</span>
+        <span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:rgba(238,241,240,.6);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:6px 10px">SHA256</span>
+        <span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#e07a6a;border:1px solid rgba(224,122,106,.35);border-radius:4px;padding:6px 10px">RM</span>
+      </div>
+      <div style="flex:1"></div>
+      <div style="padding:10px 14px;border-top:1px solid rgba(255,255,255,.07);font:400 9.5px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.28)">nfs4 · rsize 1M wsize 1M · hard,intr<br>mounted 4h 12m · 0 retrans</div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:18px;padding:8px 16px;border-top:1px solid rgba(255,255,255,.09);background:#0d0f0e">
+    <span style="font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.3)">QUEUE</span>
+    <div style="display:flex;align-items:center;gap:8px;width:300px">
+      <span style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">↓ BladeRunner2049.mkv</span>
+      <span style="font:400 10px ui-monospace,Menlo,monospace;color:#00c48f">61%</span>
+      <div style="width:64px;display:flex;gap:1px;height:3px"><div style="flex:61;background:#00c48f"></div><div style="flex:39;background:rgba(255,255,255,.08)"></div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;width:280px">
+      <span style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">↑ dist-2026.08.tar.gz</span>
+      <span style="font:400 10px ui-monospace,Menlo,monospace;color:#00c48f">42%</span>
+      <div style="width:64px;display:flex;gap:1px;height:3px"><div style="flex:42;background:#00c48f"></div><div style="flex:58;background:rgba(255,255,255,.08)"></div></div>
+    </div>
+    <span style="flex:1"></span>
+    <span style="font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">3 queued · 1 failed</span>
+    <span style="font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">12.1M/s</span>
+    <span style="font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">pause all</span>
+  </div>
+</div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="2b"><div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Transfer queue — full table with per-job hosts, rates, retries; throughput pane at right.</div>
+<div class="dv-card">
+<div style="width:1194px;height:834px;border-radius:24px;padding:12px;box-sizing:border-box;background:#1b1d1c;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+<div style="width:100%;height:100%;border-radius:13px;overflow:hidden;background:#0b0c0c;color:#eef1f0;display:flex;flex-direction:column;font-family:-apple-system,system-ui,sans-serif">
+  <div style="display:flex;align-items:center;gap:14px;padding:5px 16px;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);border-bottom:1px solid rgba(255,255,255,.06)">
+    <span>9:41 Tue 12 Aug</span><span style="flex:1"></span><span>wifi 10.0.1.4</span><span>vpn</span><span>92%</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <span style="font:600 13px ui-monospace,Menlo,monospace">queue</span>
+    <span style="font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">2 running · 3 waiting · 1 failed · 14 done today</span>
+    <span style="flex:1"></span>
+    <span style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:rgba(238,241,240,.5)">PAUSE ALL</span>
+    <span style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:rgba(238,241,240,.5)">CLEAR DONE</span>
+    <span style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:#00c48f">LIMIT 20M/s</span>
+  </div>
+  <div style="flex:1;display:flex;min-height:0">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <div style="display:flex;gap:12px;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.07);font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.3)">
+        <span style="width:18px">DIR</span><span style="flex:1">FILE</span><span style="width:150px">HOST · PATH</span><span style="width:58px;text-align:right">RATE</span><span style="width:54px;text-align:right">ETA</span><span style="width:70px;text-align:right">PROGRESS</span>
+      </div>
+      <div style="padding:7px 16px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(0,196,143,.05)">
+        <div style="display:flex;gap:12px;align-items:center">
+          <span style="width:18px;font:500 10.5px ui-monospace,Menlo,monospace;color:#00c48f">↓</span>
+          <span style="flex:1;min-width:0;font:400 12.5px ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">BladeRunner2049.2017.2160p.mkv</span>
+          <span style="width:150px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">media-nas:/export/media/films</span>
+          <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.7)">8.4M/s</span>
+          <span style="width:54px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5)">19m 04s</span>
+          <span style="width:70px;text-align:right;font:500 10.5px ui-monospace,Menlo,monospace;color:#00c48f">14.7/24.1G</span>
+        </div>
+        <div style="display:flex;gap:1px;height:3px;margin-top:6px"><div style="flex:61;background:#00c48f"></div><div style="flex:39;background:rgba(255,255,255,.08)"></div></div>
+      </div>
+      <div style="padding:7px 16px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(0,196,143,.05)">
+        <div style="display:flex;gap:12px;align-items:center">
+          <span style="width:18px;font:500 10.5px ui-monospace,Menlo,monospace;color:#00c48f">↑</span>
+          <span style="flex:1;min-width:0;font:400 12.5px ui-monospace,Menlo,monospace">dist-2026.08.tar.gz</span>
+          <span style="width:150px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">edge-01:/srv/www/releases</span>
+          <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.7)">3.7M/s</span>
+          <span style="width:54px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5)">33s</span>
+          <span style="width:70px;text-align:right;font:500 10.5px ui-monospace,Menlo,monospace;color:#00c48f">88/210M</span>
+        </div>
+        <div style="display:flex;gap:1px;height:3px;margin-top:6px"><div style="flex:42;background:#00c48f"></div><div style="flex:58;background:rgba(255,255,255,.08)"></div></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:18px;font:500 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">↓</span>
+        <span style="flex:1;min-width:0;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55)">Dune.Part.Two.2024.mkv</span>
+        <span style="width:150px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">media-nas:/export/media/films</span>
+        <span style="width:58px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">waiting</span>
+        <span style="width:54px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">—</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">0/31.7G</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:18px;font:500 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">↓</span>
+        <span style="flex:1;min-width:0;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55)">Sicario.2015.mkv</span>
+        <span style="width:150px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">media-nas:/export/media/films</span>
+        <span style="width:58px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">waiting</span>
+        <span style="width:54px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">—</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">0/12.9G</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:18px;font:500 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">↓</span>
+        <span style="flex:1;min-width:0;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55)">Sicario.2015.en.srt</span>
+        <span style="width:150px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">media-nas:/export/media/films</span>
+        <span style="width:58px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">waiting</span>
+        <span style="width:54px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">—</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">0/61K</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:18px;font:500 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">↓</span>
+        <span style="flex:1;min-width:0;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55)">Zodiac.2007.remux.mkv</span>
+        <span style="width:150px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">media-nas:/export/media/films</span>
+        <span style="width:58px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">waiting</span>
+        <span style="width:54px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">—</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">0/37.4G</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:18px;font:500 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">↑</span>
+        <span style="flex:1;min-width:0;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55)">site-assets.zip</span>
+        <span style="width:150px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">edge-01:/srv/www/static</span>
+        <span style="width:58px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">waiting</span>
+        <span style="width:54px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">—</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">0/418M</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:18px;font:500 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">↓</span>
+        <span style="flex:1;min-width:0;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55)">2026-08-tank.qcow2</span>
+        <span style="width:150px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">backup-tank:/tank/vm</span>
+        <span style="width:58px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:#e0a83c">host down</span>
+        <span style="width:54px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">—</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">0/64.0G</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:18px;font:500 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">↓</span>
+        <span style="flex:1;min-width:0;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55)">photos-2026-08.tar</span>
+        <span style="width:150px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">nas-photos:/export/photos</span>
+        <span style="width:58px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">waiting</span>
+        <span style="width:54px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">—</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">0/22.6G</span>
+      </div>
+      <div style="padding:7px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <div style="display:flex;gap:12px;align-items:center">
+          <span style="width:18px;font:500 10.5px ui-monospace,Menlo,monospace;color:#e07a6a">↑</span>
+          <span style="flex:1;min-width:0;font:400 12.5px ui-monospace,Menlo,monospace">nginx.conf</span>
+          <span style="width:150px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">edge-01:/etc/nginx</span>
+          <span style="width:58px;text-align:right;font:600 9.5px ui-monospace,Menlo,monospace;color:#eef1f0">retry</span>
+          <span style="width:54px;text-align:right;font:600 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5)">skip</span>
+          <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:#e07a6a">failed</span>
+        </div>
+        <div style="font:400 9.5px/14px ui-monospace,Menlo,monospace;color:#e07a6a;margin-top:3px;padding-left:30px">EACCES · /etc/nginx/nginx.conf not writable by deploy · attempt 2 of 3 at 09:44</div>
+      </div>
+      <div style="padding:14px 16px 7px;font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.12em;color:rgba(238,241,240,.28);border-bottom:1px solid rgba(255,255,255,.05)">COMPLETED · TODAY</div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:18px;font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">↓</span>
+        <span style="flex:1;min-width:0;font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.42)">Arrival.2016.en.srt</span>
+        <span style="width:150px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">media-nas</span>
+        <span style="width:58px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">84K</span>
+        <span style="width:54px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">14:02</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">verified</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:18px;font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">↓</span>
+        <span style="flex:1;min-width:0;font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.42)">backup-2026-08-11.sql.gz</span>
+        <span style="width:150px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">edge-01</span>
+        <span style="width:58px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">1.4G</span>
+        <span style="width:54px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">09:31</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">verified</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:18px;font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">↑</span>
+        <span style="flex:1;min-width:0;font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.42)">deploy-keys.tar.age</span>
+        <span style="width:150px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">backup-tank</span>
+        <span style="width:58px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">12K</span>
+        <span style="width:54px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">08:57</span>
+        <span style="width:70px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">verified</span>
+      </div>
+      <div style="flex:1"></div>
+      <div style="display:flex;gap:16px;align-items:center;padding:7px 16px;border-top:1px solid rgba(255,255,255,.07);font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.32)">
+        <span>session 4h 12m</span><span>up 2.1G · down 38.4G</span><span style="flex:1"></span><span>0 retrans · 0 timeouts</span>
+      </div>
+    </div>
+    <div style="width:296px;flex:none;border-left:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column">
+      <div style="padding:6px 14px;border-bottom:1px solid rgba(255,255,255,.07);font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.3)">THROUGHPUT · 60s</div>
+      <div style="padding:14px 14px 10px;border-bottom:1px solid rgba(255,255,255,.06)">
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span style="font:600 24px ui-monospace,Menlo,monospace;letter-spacing:-.5px">12.1</span>
+          <span style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">MB/s · cap 20</span>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:2px;height:56px;margin-top:12px">
+          <div style="flex:1;height:22%;background:rgba(0,196,143,.3)"></div><div style="flex:1;height:38%;background:rgba(0,196,143,.3)"></div><div style="flex:1;height:31%;background:rgba(0,196,143,.3)"></div><div style="flex:1;height:54%;background:rgba(0,196,143,.3)"></div><div style="flex:1;height:47%;background:rgba(0,196,143,.3)"></div><div style="flex:1;height:66%;background:rgba(0,196,143,.3)"></div><div style="flex:1;height:59%;background:rgba(0,196,143,.3)"></div><div style="flex:1;height:78%;background:rgba(0,196,143,.3)"></div><div style="flex:1;height:71%;background:rgba(0,196,143,.3)"></div><div style="flex:1;height:88%;background:rgba(0,196,143,.45)"></div><div style="flex:1;height:64%;background:rgba(0,196,143,.45)"></div><div style="flex:1;height:81%;background:rgba(0,196,143,.45)"></div><div style="flex:1;height:100%;background:#00c48f"></div><div style="flex:1;height:76%;background:#00c48f"></div><div style="flex:1;height:83%;background:#00c48f"></div><div style="flex:1;height:61%;background:#00c48f"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font:400 9px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25);margin-top:5px"><span>-60s</span><span>now</span></div>
+      </div>
+      <div style="display:flex;gap:10px;padding:6px 14px;border-bottom:1px solid rgba(255,255,255,.04);font:400 10.5px ui-monospace,Menlo,monospace"><span style="width:96px;color:rgba(238,241,240,.32)">parallel jobs</span><span style="color:rgba(238,241,240,.7)">2 of 3</span></div>
+      <div style="display:flex;gap:10px;padding:6px 14px;border-bottom:1px solid rgba(255,255,255,.04);font:400 10.5px ui-monospace,Menlo,monospace"><span style="width:96px;color:rgba(238,241,240,.32)">chunk size</span><span style="color:rgba(238,241,240,.7)">1 MiB</span></div>
+      <div style="display:flex;gap:10px;padding:6px 14px;border-bottom:1px solid rgba(255,255,255,.04);font:400 10.5px ui-monospace,Menlo,monospace"><span style="width:96px;color:rgba(238,241,240,.32)">on cellular</span><span style="color:#e0a83c">paused</span></div>
+      <div style="display:flex;gap:10px;padding:6px 14px;border-bottom:1px solid rgba(255,255,255,.06);font:400 10.5px ui-monospace,Menlo,monospace"><span style="width:96px;color:rgba(238,241,240,.32)">verify</span><span style="color:rgba(238,241,240,.7)">sha256 on finish</span></div>
+      <div style="padding:12px 14px 6px;font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.12em;color:rgba(238,241,240,.28)">PER HOST</div>
+      <div style="display:flex;gap:10px;align-items:center;padding:6px 14px;font:400 10.5px ui-monospace,Menlo,monospace"><span style="flex:1;color:rgba(238,241,240,.6)">media-nas</span><span style="color:rgba(238,241,240,.7)">8.4M/s</span><div style="width:52px;display:flex;gap:1px;height:3px"><div style="flex:70;background:#00c48f"></div><div style="flex:30;background:rgba(255,255,255,.08)"></div></div></div>
+      <div style="display:flex;gap:10px;align-items:center;padding:6px 14px;font:400 10.5px ui-monospace,Menlo,monospace"><span style="flex:1;color:rgba(238,241,240,.6)">edge-01</span><span style="color:rgba(238,241,240,.7)">3.7M/s</span><div style="width:52px;display:flex;gap:1px;height:3px"><div style="flex:31;background:#00c48f"></div><div style="flex:69;background:rgba(255,255,255,.08)"></div></div></div>
+      <div style="flex:1"></div>
+      <div style="padding:10px 14px;border-top:1px solid rgba(255,255,255,.07);font:400 9.5px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.28)">transfers continue in background<br>for 10 min after app is closed</div>
+    </div>
+  </div>
+</div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="2c"><div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>New connection — dialog over the dimmed browser, two-column form, live probe log.</div>
+<div class="dv-card">
+<div style="width:1194px;height:834px;border-radius:24px;padding:12px;box-sizing:border-box;background:#1b1d1c;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+<div style="width:100%;height:100%;border-radius:13px;overflow:hidden;background:#0b0c0c;color:#eef1f0;position:relative;font-family:-apple-system,system-ui,sans-serif">
+  <div style="position:absolute;inset:0;opacity:.28;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:14px;padding:5px 16px;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);border-bottom:1px solid rgba(255,255,255,.06)"><span>9:41 Tue 12 Aug</span><span style="flex:1"></span><span>wifi 10.0.1.4</span><span>92%</span></div>
+    <div style="display:flex;gap:16px;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,.07);font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5)"><span>hosts</span><span style="flex:1"></span><span>queue 2</span></div>
+    <div style="flex:1;display:flex">
+      <div style="width:252px;border-right:1px solid rgba(255,255,255,.07);padding:8px 14px;display:flex;flex-direction:column;gap:11px;font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">
+        <span>media-nas</span><span>edge-01</span><span>backup-tank</span><span>plex-scratch</span><span>localhost</span>
+      </div>
+      <div style="flex:1;padding:8px 16px;display:flex;flex-direction:column;gap:9px;font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">
+        <span>4K_HDR/</span><span>Documentaries/</span><span>Arrival.2016.2160p.mkv</span><span>Arrival.2016.en.srt</span><span>BladeRunner2049.2017.2160p.mkv</span><span>Dune.Part.Two.2024.mkv</span><span>Heat.1995.remux.mkv</span><span>Sicario.2015.mkv</span>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(6,8,7,.62)"></div>
+  <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:820px;background:#0e100f;border:1px solid rgba(255,255,255,.12);border-radius:10px;box-shadow:0 40px 90px rgba(0,0,0,.6);overflow:hidden">
+    <div style="display:flex;align-items:center;gap:14px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.08)">
+      <span style="font:600 13px ui-monospace,Menlo,monospace">new host</span>
+      <span style="flex:1"></span>
+      <span style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:rgba(238,241,240,.45)">IMPORT ~/.ssh/config</span>
+      <span style="font:400 13px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">✕</span>
+    </div>
+    <div style="display:flex;gap:7px;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.06)">
+      <span style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:#0b0f0e;background:#00c48f;border-radius:4px;padding:5px 10px">SFTP</span>
+      <span style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:rgba(238,241,240,.5);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:5px 10px">NFS</span>
+      <span style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:rgba(238,241,240,.5);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:5px 10px">SMB</span>
+      <span style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:rgba(238,241,240,.5);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:5px 10px">LOCAL</span>
+      <span style="flex:1"></span>
+      <span style="font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3);padding-top:6px">openssh 9.6 detected</span>
+    </div>
+    <div style="display:flex">
+      <div style="flex:1;padding:16px 18px;border-right:1px solid rgba(255,255,255,.06)">
+        <div style="display:flex;gap:16px;margin-bottom:16px">
+          <div style="flex:1;border-bottom:1px solid rgba(255,255,255,.12);padding-bottom:6px">
+            <div style="font:500 9px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:rgba(238,241,240,.32)">NAME</div>
+            <div style="font:400 13.5px ui-monospace,Menlo,monospace;margin-top:5px">edge-02</div>
+          </div>
+          <div style="width:120px;border-bottom:1px solid rgba(255,255,255,.12);padding-bottom:6px">
+            <div style="font:500 9px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:rgba(238,241,240,.32)">GROUP</div>
+            <div style="font:400 13.5px ui-monospace,Menlo,monospace;margin-top:5px;color:rgba(238,241,240,.55)">prod</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;margin-bottom:16px">
+          <div style="flex:1;border-bottom:1px solid #00c48f;padding-bottom:6px">
+            <div style="font:500 9px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#00c48f">HOST</div>
+            <div style="font:400 13.5px ui-monospace,Menlo,monospace;margin-top:5px">edge-02.fsn1.internal<span style="color:#00c48f">|</span></div>
+          </div>
+          <div style="width:64px;border-bottom:1px solid rgba(255,255,255,.12);padding-bottom:6px">
+            <div style="font:500 9px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:rgba(238,241,240,.32)">PORT</div>
+            <div style="font:400 13.5px ui-monospace,Menlo,monospace;margin-top:5px">22</div>
+          </div>
+          <div style="width:100px;border-bottom:1px solid rgba(255,255,255,.12);padding-bottom:6px">
+            <div style="font:500 9px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:rgba(238,241,240,.32)">USER</div>
+            <div style="font:400 13.5px ui-monospace,Menlo,monospace;margin-top:5px">deploy</div>
+          </div>
+        </div>
+        <div style="font:500 9px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:rgba(238,241,240,.32);margin-bottom:8px">AUTH</div>
+        <div style="display:flex;gap:7px;margin-bottom:14px">
+          <span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#00c48f;border:1px solid #00c48f;border-radius:4px;padding:6px 12px">KEY</span>
+          <span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:rgba(238,241,240,.5);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:6px 12px">PASSWORD</span>
+          <span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:rgba(238,241,240,.5);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:6px 12px">AGENT</span>
+          <span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:rgba(238,241,240,.5);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:6px 12px">KBD-INT</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:10px 12px;margin-bottom:16px">
+          <div style="flex:1">
+            <div style="font:400 12.5px ui-monospace,Menlo,monospace">id_ed25519</div>
+            <div style="font:400 9.5px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.36);margin-top:3px">SHA256:v8Kx7dR…q2Lp · Secure Enclave · Face ID</div>
+          </div>
+          <span style="font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">CHANGE</span>
+        </div>
+        <div style="display:flex;gap:16px">
+          <div style="flex:1;border-bottom:1px solid rgba(255,255,255,.12);padding-bottom:6px">
+            <div style="font:500 9px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:rgba(238,241,240,.32)">INITIAL PATH</div>
+            <div style="font:400 13.5px ui-monospace,Menlo,monospace;margin-top:5px">/srv/www</div>
+          </div>
+          <div style="width:150px;border-bottom:1px solid rgba(255,255,255,.12);padding-bottom:6px">
+            <div style="font:500 9px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:rgba(238,241,240,.32)">KEEPALIVE</div>
+            <div style="font:400 13.5px ui-monospace,Menlo,monospace;margin-top:5px">30s</div>
+          </div>
+        </div>
+      </div>
+      <div style="width:300px;flex:none;padding:16px 18px">
+        <div style="font:500 9px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:rgba(238,241,240,.32);margin-bottom:10px">OPTIONS</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+          <span style="flex:1;font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.75)">compression</span>
+          <div style="width:32px;height:17px;border-radius:9px;background:#00c48f;position:relative"><div style="position:absolute;top:2px;right:2px;width:13px;height:13px;border-radius:50%;background:#0b0f0e"></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+          <span style="flex:1;font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.75)">follow symlinks</span>
+          <div style="width:32px;height:17px;border-radius:9px;background:rgba(255,255,255,.14);position:relative"><div style="position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:rgba(238,241,240,.5)"></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+          <span style="flex:1;font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.75)">read-only mount</span>
+          <div style="width:32px;height:17px;border-radius:9px;background:rgba(255,255,255,.14);position:relative"><div style="position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:rgba(238,241,240,.5)"></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+          <span style="flex:1;font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.75)">show hidden</span>
+          <div style="width:32px;height:17px;border-radius:9px;background:#00c48f;position:relative"><div style="position:absolute;top:2px;right:2px;width:13px;height:13px;border-radius:50%;background:#0b0f0e"></div></div>
+        </div>
+        <div style="font:500 9px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:rgba(238,241,240,.32);margin:16px 0 8px">PROBE</div>
+        <div style="background:#0a0b0b;border:1px solid rgba(255,255,255,.07);border-radius:5px;padding:9px 10px;font:400 9.5px/16px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5)">
+          <div>resolve edge-02.fsn1.internal → 10.0.4.19</div>
+          <div>tcp 22 open · 24 ms</div>
+          <div>banner SSH-2.0-OpenSSH_9.6</div>
+          <div style="color:#e0a83c">host key not in known_hosts</div>
+          <div style="color:rgba(238,241,240,.7)">SHA256:9pR2c…7yWq</div>
+          <div style="color:#00c48f">auth ed25519 accepted · /srv/www readable</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <span style="flex:1;text-align:center;font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:rgba(238,241,240,.55);border:1px solid rgba(255,255,255,.12);border-radius:5px;padding:9px 0">CANCEL</span>
+          <span style="flex:1;text-align:center;font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#0b0f0e;background:#00c48f;border-radius:5px;padding:9px 0">TRUST &amp; SAVE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="2d"><div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a>Android tablet — settings nav with the keys pane open (both screens, one split view).</div>
+<div class="dv-card">
+<div style="width:1280px;height:800px;border-radius:18px;padding:10px;box-sizing:border-box;background:#232525;box-shadow:0 30px 80px rgba(0,0,0,.4)">
+<div style="width:100%;height:100%;border-radius:9px;overflow:hidden;background:#0b0c0c;color:#eef1f0;display:flex;flex-direction:column;font-family:Roboto,system-ui,sans-serif">
+  <div style="display:flex;align-items:center;gap:14px;padding:5px 16px;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);border-bottom:1px solid rgba(255,255,255,.06)">
+    <span>9:41</span><span style="flex:1"></span><span>wifi</span><span>vpn</span><span>88%</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <span style="font-size:15px;color:rgba(238,241,240,.6)">←</span>
+    <span style="font:600 13px ui-monospace,Menlo,monospace">prefs</span>
+    <span style="flex:1"></span>
+    <span style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">build 2026.08.3 · libssh2 1.11 · nfs-client 4.2</span>
+  </div>
+  <div style="flex:1;display:flex;min-height:0">
+    <div style="width:236px;flex:none;border-right:1px solid rgba(255,255,255,.07);padding:8px 0">
+      <div style="padding:8px 18px;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55);border-left:2px solid transparent">transfers</div>
+      <div style="padding:8px 18px;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55);border-left:2px solid transparent">browsing</div>
+      <div style="padding:8px 18px;font:500 12.5px ui-monospace,Menlo,monospace;color:#eef1f0;background:rgba(0,196,143,.07);border-left:2px solid #00c48f">keys &amp; credentials</div>
+      <div style="padding:8px 18px;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55);border-left:2px solid transparent">known hosts</div>
+      <div style="padding:8px 18px;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55);border-left:2px solid transparent">cache &amp; offline</div>
+      <div style="padding:8px 18px;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55);border-left:2px solid transparent">appearance</div>
+      <div style="padding:8px 18px;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55);border-left:2px solid transparent">about</div>
+      <div style="margin:14px 18px 0;padding-top:14px;border-top:1px solid rgba(255,255,255,.07);font:400 9.5px/16px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.28)">3 keys · 2 passwords<br>4 known hosts · 1 changed</div>
+    </div>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <div style="display:flex;gap:12px;padding:7px 20px;border-bottom:1px solid rgba(255,255,255,.07);font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.3)">
+        <span style="width:74px">TYPE</span><span style="flex:1">NAME · FINGERPRINT</span><span style="width:130px">STORAGE</span><span style="width:70px;text-align:right">HOSTS</span><span style="width:82px;text-align:right">LAST USED</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:9px 20px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(0,196,143,.05)">
+        <span style="width:74px;font:400 10px ui-monospace,Menlo,monospace;color:#00c48f">ed25519</span>
+        <span style="flex:1;min-width:0"><span style="font:500 12.5px ui-monospace,Menlo,monospace">id_ed25519</span><div style="font:400 10px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);margin-top:2px">SHA256:v8Kx7dR9mTn4pLwE2sVzXyBc6uHjKf0aQrIo1q2Lp</div></span>
+        <span style="width:130px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55)">Keystore · biometric</span>
+        <span style="width:70px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">2</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">4 min ago</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:9px 20px;border-bottom:1px solid rgba(255,255,255,.05)">
+        <span style="width:74px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">rsa 4096</span>
+        <span style="flex:1;min-width:0"><span style="font:500 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.7)">id_rsa_legacy</span><div style="font:400 10px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35);margin-top:2px">SHA256:Jm3pA1zQw7RtYu9iOp2sDf5gHj8kLx0cVb6nM4z8fQe</div></span>
+        <span style="width:130px;font:400 10px ui-monospace,Menlo,monospace;color:#e0a83c">passphrase only</span>
+        <span style="width:70px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5)">1</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">8 mo ago</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:9px 20px;border-bottom:1px solid rgba(255,255,255,.05)">
+        <span style="width:74px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">ecdsa p256</span>
+        <span style="flex:1;min-width:0"><span style="font:500 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.7)">ci-runner</span><div style="font:400 10px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35);margin-top:2px">SHA256:Qc0Vb9xNm2LkJh4gFd7sAe1rTy6uIo3pZx5wTtu1</div></span>
+        <span style="width:130px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55)">Keystore</span>
+        <span style="width:70px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5)">1</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">2 d ago</span>
+      </div>
+      <div style="display:flex;gap:8px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.07)">
+        <span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#0b0f0e;background:#00c48f;border-radius:4px;padding:7px 12px">GENERATE ed25519</span>
+        <span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:rgba(238,241,240,.6);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:7px 12px">IMPORT FILE</span>
+        <span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:rgba(238,241,240,.6);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:7px 12px">PASTE PEM</span>
+        <span style="flex:1"></span>
+        <span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#e07a6a;border:1px solid rgba(224,122,106,.35);border-radius:4px;padding:7px 12px">REVOKE UNUSED</span>
+      </div>
+      <div style="padding:13px 20px 7px;font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.12em;color:rgba(238,241,240,.28);border-bottom:1px solid rgba(255,255,255,.05)">SAVED PASSWORDS · 2</div>
+      <div style="display:flex;gap:12px;align-items:center;padding:8px 20px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:74px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">smb3</span>
+        <span style="flex:1;font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.65)">backup-tank · WORKGROUP\\admin</span>
+        <span style="width:130px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5)">Keystore</span>
+        <span style="width:70px;text-align:right;font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">REVEAL</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">3 w ago</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:8px 20px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:74px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">sftp</span>
+        <span style="flex:1;font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.65)">nas-admin · 10.0.1.12</span>
+        <span style="width:130px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5)">Keystore</span>
+        <span style="width:70px;text-align:right;font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">REVEAL</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">1 d ago</span>
+      </div>
+      <div style="padding:13px 20px 7px;font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.12em;color:rgba(238,241,240,.28);border-bottom:1px solid rgba(255,255,255,.05)">KNOWN HOSTS · 4</div>
+      <div style="display:flex;gap:12px;align-items:center;padding:8px 20px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:74px;font:400 10px ui-monospace,Menlo,monospace;color:#00c48f">ed25519</span>
+        <span style="flex:1;font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.65)">edge-01.fsn1:22</span>
+        <span style="width:130px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">verified 11 Aug</span>
+        <span style="width:70px;text-align:right"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#00c48f"></span></span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">4 min ago</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:8px 20px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:74px;font:400 10px ui-monospace,Menlo,monospace;color:#e07a6a">ed25519</span>
+        <span style="flex:1;min-width:0;font:400 12px ui-monospace,Menlo,monospace;color:#e07a6a">staging.fsn1:22<div style="font:400 9.5px/14px ui-monospace,Menlo,monospace;color:#e07a6a;margin-top:2px">fingerprint changed since 04 Aug · connection refused until reviewed</div></span>
+        <span style="width:130px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">unverified</span>
+        <span style="width:70px;text-align:right;font:600 9.5px ui-monospace,Menlo,monospace;color:#eef1f0">REVIEW</span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">6 d ago</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:8px 20px;border-bottom:1px solid rgba(255,255,255,.04)">
+        <span style="width:74px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">rsa</span>
+        <span style="flex:1;font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">10.0.1.12:22</span>
+        <span style="width:130px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">verified 02 Jul</span>
+        <span style="width:70px;text-align:right"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#00c48f"></span></span>
+        <span style="width:82px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">1 d ago</span>
+      </div>
+      <div style="flex:1"></div>
+      <div style="display:flex;align-items:center;gap:16px;padding:9px 20px;border-top:1px solid rgba(255,255,255,.07);font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.32)">
+        <span>strict host key checking on</span><span>biometric unlock on</span><span style="flex:1"></span><span>export config</span><span style="color:#e07a6a">wipe all credentials</span>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:center;padding:7px 0 9px;border-top:1px solid rgba(255,255,255,.07)">
+    <div style="width:110px;height:3px;border-radius:2px;background:rgba(238,241,240,.35)"></div>
+  </div>
+</div>
+</div>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "add a grid/thumbnail view for the media folders" · "show <a class="dv-oid" href="#2a">2a</a> in portrait" · "add multi-select with a bulk action bar" · "show the split-pane two-host copy view"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Three visual directions — dark, hairline chrome, mono for paths and sizes</span></div>
+<p class="dv-note">Compact/pro density throughout, aimed at the sysadmin + NAS-browsing pair. Each direction below shows the same three screens: <b>connections home</b>, <b>file browser</b>, <b>transfer queue</b> — iOS. <a class="dv-oid" href="#1d">1d</a> covers the other three screens (add connection, keys, settings) on Android. Accent green is reserved for live state and the one primary action per screen.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Hairline — quietest. Status dot + one accent action, nothing else earns color.</div>
+<div class="dv-card">
+
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="height:100%;box-sizing:border-box;padding-top:62px;background:#0e100f;color:#eef1f0;display:flex;flex-direction:column">
+  <div style="padding:8px 20px 12px;display:flex;align-items:baseline;justify-content:space-between">
+    <div style="font-size:27px;font-weight:600;letter-spacing:-.5px">Connections</div>
+    <div style="font-size:14px;font-weight:500;color:#00c48f">Edit</div>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 20px;border-top:1px solid rgba(255,255,255,.07)">
+      <div style="width:7px;height:7px;border-radius:50%;background:#00c48f;flex:none"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:500">media-nas</div>
+        <div style="font:400 11px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);margin-top:2px">nfs4 · 10.0.1.12:/export/media</div>
+      </div>
+      <div style="font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.34)">4.2 TB free</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 20px;border-top:1px solid rgba(255,255,255,.07)">
+      <div style="width:7px;height:7px;border-radius:50%;background:#00c48f;flex:none"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:500">edge-01</div>
+        <div style="font:400 11px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);margin-top:2px">sftp · deploy@edge-01.fsn1:22</div>
+      </div>
+      <div style="font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.34)">ed25519</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 20px;border-top:1px solid rgba(255,255,255,.07)">
+      <div style="width:7px;height:7px;border-radius:50%;border:1px solid rgba(238,241,240,.3);box-sizing:border-box;flex:none"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:500;color:rgba(238,241,240,.75)">backup-tank</div>
+        <div style="font:400 11px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);margin-top:2px">smb3 · //192.168.1.20/tank</div>
+      </div>
+      <div style="font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.28)">offline</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 20px;border-top:1px solid rgba(255,255,255,.07)">
+      <div style="width:7px;height:7px;border-radius:50%;background:#e0a83c;flex:none"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:500">plex-scratch</div>
+        <div style="font:400 11px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);margin-top:2px">nfs3 · 10.0.1.12:/export/scratch</div>
+      </div>
+      <div style="font:400 11px ui-monospace,Menlo,monospace;color:#e0a83c">stale mount</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 20px;border-top:1px solid rgba(255,255,255,.07);border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:7px;height:7px;border-radius:2px;background:rgba(238,241,240,.3);flex:none"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:500">On this iPhone</div>
+        <div style="font:400 11px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);margin-top:2px">local · 128 GB</div>
+      </div>
+    </div>
+    <div style="padding:16px 20px">
+      <div style="font-size:14px;font-weight:500;color:#00c48f">+ New connection</div>
+    </div>
+  </div>
+  <div style="display:flex;padding:10px 20px 40px;border-top:1px solid rgba(255,255,255,.07);gap:30px">
+    <div style="font-size:11.5px;font-weight:600;color:#eef1f0">Connections</div>
+    <div style="font-size:11.5px;font-weight:500;color:rgba(238,241,240,.42)">Transfers <span style="color:#00c48f">2</span></div>
+    <div style="font-size:11.5px;font-weight:500;color:rgba(238,241,240,.42)">Settings</div>
+  </div>
+</div>
+</x-import>
+
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="height:100%;box-sizing:border-box;padding-top:62px;background:#0e100f;color:#eef1f0;display:flex;flex-direction:column">
+  <div style="padding:6px 20px 10px">
+    <div style="font-size:13px;font-weight:500;color:#00c48f;margin-bottom:6px">‹ media-nas</div>
+    <div style="font-size:22px;font-weight:600;letter-spacing:-.3px">films</div>
+    <div style="font:400 11px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.38);margin-top:3px">/export/media/films</div>
+  </div>
+  <div style="display:flex;gap:16px;padding:0 20px 10px;font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.34)">
+    <span>name ↑</span><span>142 items</span><span>1.9 TB</span>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:12px;padding:9px 20px;border-top:1px solid rgba(255,255,255,.07)">
+      <div style="width:14px;height:11px;border:1px solid rgba(238,241,240,.45);border-radius:2px;flex:none"></div>
+      <div style="flex:1;font-size:14.5px;font-weight:500">4K HDR</div>
+      <div style="font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">31</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:9px 20px;border-top:1px solid rgba(255,255,255,.07)">
+      <div style="width:14px;height:11px;border:1px solid rgba(238,241,240,.45);border-radius:2px;flex:none"></div>
+      <div style="flex:1;font-size:14.5px;font-weight:500">Documentaries</div>
+      <div style="font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">64</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:9px 20px;border-top:1px solid rgba(255,255,255,.07)">
+      <div style="width:11px;height:13px;border:1px solid rgba(238,241,240,.28);border-radius:1px;flex:none"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Arrival (2016) 2160p.mkv</div>
+      </div>
+      <div style="font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.38)">18.4 GB</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:9px 20px;border-top:1px solid rgba(255,255,255,.07)">
+      <div style="width:11px;height:13px;border:1px solid rgba(238,241,240,.28);border-radius:1px;flex:none"></div>
+      <div style="flex:1;min-width:0"><div style="font-size:14.5px">Arrival (2016).en.srt</div></div>
+      <div style="font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.38)">84 KB</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:9px 20px;border-top:1px solid rgba(255,255,255,.07);background:rgba(0,196,143,.06)">
+      <div style="width:11px;height:13px;border:1px solid #00c48f;border-radius:1px;flex:none"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Blade Runner 2049.mkv</div>
+        <div style="font:400 10.5px/14px ui-monospace,Menlo,monospace;color:#00c48f;margin-top:2px">downloading · 61%</div>
+      </div>
+      <div style="font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.38)">24.1 GB</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:9px 20px;border-top:1px solid rgba(255,255,255,.07)">
+      <div style="width:11px;height:13px;border:1px solid rgba(238,241,240,.28);border-radius:1px;flex:none"></div>
+      <div style="flex:1;min-width:0"><div style="font-size:14.5px">Dune Part Two.mkv</div></div>
+      <div style="font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.38)">31.7 GB</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:9px 20px;border-top:1px solid rgba(255,255,255,.07);border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:11px;height:13px;border:1px dashed rgba(238,241,240,.22);border-radius:1px;flex:none"></div>
+      <div style="flex:1;min-width:0"><div style="font-size:14.5px;color:rgba(238,241,240,.45)">.metadata</div></div>
+      <div style="font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">hidden</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 20px 40px;border-top:1px solid rgba(255,255,255,.07)">
+    <div style="font-size:12.5px;font-weight:500;color:rgba(238,241,240,.5)">Select</div>
+    <div style="font-size:12.5px;font-weight:500;color:rgba(238,241,240,.5)">Sort</div>
+    <div style="font-size:12.5px;font-weight:600;color:#00c48f">Upload</div>
+  </div>
+</div>
+</x-import>
+
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="height:100%;box-sizing:border-box;padding-top:62px;background:#0e100f;color:#eef1f0;display:flex;flex-direction:column">
+  <div style="padding:8px 20px 12px;display:flex;align-items:baseline;justify-content:space-between">
+    <div style="font-size:27px;font-weight:600;letter-spacing:-.5px">Transfers</div>
+    <div style="font-size:14px;font-weight:500;color:rgba(238,241,240,.5)">Pause all</div>
+  </div>
+  <div style="padding:0 20px 12px;font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.38)">2 active · 3 queued · 12.1 MB/s</div>
+  <div style="flex:1;overflow:hidden">
+    <div style="padding:11px 20px;border-top:1px solid rgba(255,255,255,.07)">
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <div style="flex:1;min-width:0;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Blade Runner 2049.mkv</div>
+        <div style="font:400 11px ui-monospace,Menlo,monospace;color:#00c48f">61%</div>
+      </div>
+      <div style="font:400 10.5px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.38);margin-top:2px">↓ media-nas · 14.7/24.1 GB · 8.4 MB/s · 19 min left</div>
+      <div style="height:2px;background:rgba(255,255,255,.09);margin-top:9px"><div style="width:61%;height:2px;background:#00c48f"></div></div>
+    </div>
+    <div style="padding:11px 20px;border-top:1px solid rgba(255,255,255,.07)">
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <div style="flex:1;min-width:0;font-size:14.5px">dist-2026.08.tar.gz</div>
+        <div style="font:400 11px ui-monospace,Menlo,monospace;color:#00c48f">42%</div>
+      </div>
+      <div style="font:400 10.5px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.38);margin-top:2px">↑ edge-01 · 88/210 MB · 3.7 MB/s</div>
+      <div style="height:2px;background:rgba(255,255,255,.09);margin-top:9px"><div style="width:42%;height:2px;background:#00c48f"></div></div>
+    </div>
+    <div style="padding:9px 20px;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:10px">
+      <div style="flex:1;min-width:0;font-size:14.5px;color:rgba(238,241,240,.7)">Dune Part Two.mkv</div>
+      <div style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.32)">queued · 31.7 GB</div>
+    </div>
+    <div style="padding:9px 20px;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:10px">
+      <div style="flex:1;min-width:0;font-size:14.5px;color:rgba(238,241,240,.7)">Sicario 2015.mkv</div>
+      <div style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.32)">queued · 12.9 GB</div>
+    </div>
+    <div style="padding:9px 20px;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:10px">
+      <div style="flex:1;min-width:0;font-size:14.5px;color:#e07a6a">nginx.conf</div>
+      <div style="font:400 10.5px ui-monospace,Menlo,monospace;color:#e07a6a">permission denied</div>
+    </div>
+    <div style="padding:14px 20px 8px;border-top:1px solid rgba(255,255,255,.07);font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.12em;color:rgba(238,241,240,.3)">COMPLETED TODAY</div>
+    <div style="padding:8px 20px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1;min-width:0;font-size:14px;color:rgba(238,241,240,.55)">Arrival (2016).en.srt</div>
+      <div style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.28)">84 KB · 14:02</div>
+    </div>
+    <div style="padding:8px 20px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1;min-width:0;font-size:14px;color:rgba(238,241,240,.55)">backup-2026-08-11.sql.gz</div>
+      <div style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.28)">1.4 GB · 09:31</div>
+    </div>
+  </div>
+  <div style="display:flex;padding:10px 20px 40px;border-top:1px solid rgba(255,255,255,.07);gap:30px">
+    <div style="font-size:11.5px;font-weight:500;color:rgba(238,241,240,.42)">Connections</div>
+    <div style="font-size:11.5px;font-weight:600;color:#eef1f0">Transfers</div>
+    <div style="font-size:11.5px;font-weight:500;color:rgba(238,241,240,.42)">Settings</div>
+  </div>
+</div>
+</x-import>
+
+</div></div>
+
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Path rail — mono section labels, protocol tags in a left gutter, crumb path bar.</div>
+<div class="dv-card">
+
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="height:100%;box-sizing:border-box;padding-top:62px;background:#0e100f;color:#eef1f0;display:flex;flex-direction:column">
+  <div style="padding:10px 18px 16px">
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(238,241,240,.32)">REMOTES</div>
+    <div style="font-size:26px;font-weight:600;letter-spacing:-.5px;margin-top:5px">5 configured</div>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <div style="padding:5px 18px 6px;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(238,241,240,.3);border-bottom:1px solid rgba(255,255,255,.07)">MOUNTED</div>
+    <div style="display:flex;gap:12px;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px/13px ui-monospace,Menlo,monospace;color:#00c48f;letter-spacing:.06em;padding-top:2px">NFS4</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15.5px;font-weight:500">media-nas</div>
+        <div style="font:400 11px/16px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.42);margin-top:2px">10.0.1.12:/export/media</div>
+        <div style="display:flex;gap:14px;margin-top:7px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.34)">
+          <span>4.2 TB free</span><span>rw</span><span>rsize 1M</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px/13px ui-monospace,Menlo,monospace;color:#00c48f;letter-spacing:.06em;padding-top:2px">SFTP</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15.5px;font-weight:500">edge-01</div>
+        <div style="font:400 11px/16px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.42);margin-top:2px">deploy@edge-01.fsn1:22</div>
+        <div style="display:flex;gap:14px;margin-top:7px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.34)">
+          <span>ed25519</span><span>keepalive 30s</span>
+        </div>
+      </div>
+    </div>
+    <div style="padding:14px 18px 6px;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(238,241,240,.3);border-bottom:1px solid rgba(255,255,255,.07)">IDLE</div>
+    <div style="display:flex;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px/13px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35);letter-spacing:.06em;padding-top:2px">SMB3</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15.5px;font-weight:500;color:rgba(238,241,240,.72)">backup-tank</div>
+        <div style="font:400 11px/16px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.36);margin-top:2px">//192.168.1.20/tank</div>
+      </div>
+      <div style="font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.28);padding-top:4px">tap to mount</div>
+    </div>
+    <div style="display:flex;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px/13px ui-monospace,Menlo,monospace;color:#e0a83c;letter-spacing:.06em;padding-top:2px">NFS3</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15.5px;font-weight:500;color:rgba(238,241,240,.72)">plex-scratch</div>
+        <div style="font:400 11px/16px ui-monospace,Menlo,monospace;color:#e0a83c;margin-top:2px">stale file handle · remount</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px/13px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35);letter-spacing:.06em;padding-top:2px">LOCAL</div>
+      <div style="flex:1;min-width:0"><div style="font-size:15.5px;font-weight:500;color:rgba(238,241,240,.72)">On this iPhone</div></div>
+      <div style="font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.28);padding-top:4px">128 GB</div>
+    </div>
+  </div>
+  <div style="padding:12px 18px 14px;border-top:1px solid rgba(255,255,255,.07)">
+    <div style="border:1px solid #00c48f;border-radius:6px;padding:9px 0;text-align:center;font-size:13.5px;font-weight:600;color:#00c48f">New connection</div>
+  </div>
+  <div style="display:flex;padding:0 18px 38px;gap:24px">
+    <div style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:#eef1f0;padding-bottom:3px;border-bottom:2px solid #00c48f">REMOTES</div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.4);padding-bottom:3px">QUEUE</div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.4);padding-bottom:3px">KEYS</div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.4);padding-bottom:3px">PREFS</div>
+  </div>
+</div>
+</x-import>
+
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="height:100%;box-sizing:border-box;padding-top:62px;background:#0e100f;color:#eef1f0;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;gap:6px;padding:8px 18px 10px;font:400 11.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);overflow:hidden;white-space:nowrap">
+    <span style="color:#00c48f">media-nas</span><span>/</span><span>export</span><span>/</span><span>media</span><span>/</span><span style="color:#eef1f0">films</span>
+  </div>
+  <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 18px 12px">
+    <div style="font-size:24px;font-weight:600;letter-spacing:-.4px">films</div>
+    <div style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.34)">142 · 1.9 TB</div>
+  </div>
+  <div style="display:flex;gap:6px;padding:0 18px 12px">
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:#0b0f0e;background:#00c48f;padding:4px 8px;border-radius:4px">ALL</div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:rgba(238,241,240,.5);border:1px solid rgba(255,255,255,.12);padding:4px 8px;border-radius:4px">VIDEO</div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:rgba(238,241,240,.5);border:1px solid rgba(255,255,255,.12);padding:4px 8px;border-radius:4px">PINNED</div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:rgba(238,241,240,.5);border:1px solid rgba(255,255,255,.12);padding:4px 8px;border-radius:4px">.HIDDEN</div>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <div style="padding:5px 18px 6px;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(238,241,240,.3);border-bottom:1px solid rgba(255,255,255,.07)">DIRECTORIES · 2</div>
+    <div style="display:flex;gap:12px;align-items:center;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">DIR</div>
+      <div style="flex:1;font-size:15px;font-weight:500">4K HDR</div>
+      <div style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">31 items</div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">DIR</div>
+      <div style="flex:1;font-size:15px;font-weight:500">Documentaries</div>
+      <div style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">64 items</div>
+    </div>
+    <div style="padding:13px 18px 6px;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(238,241,240,.3);border-bottom:1px solid rgba(255,255,255,.07)">FILES · 140</div>
+    <div style="display:flex;gap:12px;align-items:center;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">MKV</div>
+      <div style="flex:1;min-width:0"><div style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Arrival (2016) 2160p.mkv</div><div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.32);margin-top:2px">18.4 GB · 12 Mar</div></div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">SRT</div>
+      <div style="flex:1;min-width:0"><div style="font-size:15px">Arrival (2016).en.srt</div><div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.32);margin-top:2px">84 KB · 12 Mar</div></div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(0,196,143,.05)">
+      <div style="width:38px;flex:none;font:500 9.5px ui-monospace,Menlo,monospace;color:#00c48f">MKV</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;overflow:hidden;text-omitted:clip;text-overflow:ellipsis;white-space:nowrap">Blade Runner 2049.mkv</div>
+        <div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:#00c48f;margin-top:3px">↓ 61% · 8.4 MB/s</div>
+        <div style="height:2px;background:rgba(255,255,255,.09);margin-top:6px"><div style="width:61%;height:2px;background:#00c48f"></div></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">MKV</div>
+      <div style="flex:1;min-width:0"><div style="font-size:15px">Dune Part Two.mkv</div><div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.32);margin-top:2px">31.7 GB · 04 Apr</div></div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">NFO</div>
+      <div style="flex:1;min-width:0"><div style="font-size:15px">library.nfo</div><div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.32);margin-top:2px">2 KB · 09 Aug</div></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;padding:12px 18px 40px;border-top:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1;text-align:center;font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.55);border:1px solid rgba(255,255,255,.12);border-radius:5px;padding:8px 0">SELECT</div>
+    <div style="flex:1;text-align:center;font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.55);border:1px solid rgba(255,255,255,.12);border-radius:5px;padding:8px 0">SORT</div>
+    <div style="flex:1;text-align:center;font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:#0b0f0e;background:#00c48f;border-radius:5px;padding:8px 0">UPLOAD</div>
+  </div>
+</div>
+</x-import>
+
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="height:100%;box-sizing:border-box;padding-top:62px;background:#0e100f;color:#eef1f0;display:flex;flex-direction:column">
+  <div style="padding:10px 18px 14px">
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(238,241,240,.32)">QUEUE</div>
+    <div style="display:flex;align-items:baseline;gap:10px;margin-top:5px">
+      <div style="font-size:26px;font-weight:600;letter-spacing:-.5px">12.1</div>
+      <div style="font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">MB/s aggregate</div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:2px;height:26px;margin-top:12px">
+      <div style="flex:1;height:34%;background:rgba(0,196,143,.35)"></div><div style="flex:1;height:52%;background:rgba(0,196,143,.35)"></div><div style="flex:1;height:44%;background:rgba(0,196,143,.35)"></div><div style="flex:1;height:70%;background:rgba(0,196,143,.35)"></div><div style="flex:1;height:88%;background:rgba(0,196,143,.35)"></div><div style="flex:1;height:62%;background:rgba(0,196,143,.35)"></div><div style="flex:1;height:76%;background:rgba(0,196,143,.35)"></div><div style="flex:1;height:100%;background:#00c48f"></div><div style="flex:1;height:81%;background:#00c48f"></div><div style="flex:1;height:66%;background:#00c48f"></div>
+    </div>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <div style="padding:5px 18px 6px;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(238,241,240,.3);border-bottom:1px solid rgba(255,255,255,.07)">ACTIVE · 2</div>
+    <div style="display:flex;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px ui-monospace,Menlo,monospace;color:#00c48f;padding-top:3px">DOWN</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Blade Runner 2049.mkv</div>
+        <div style="font:400 10.5px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);margin-top:2px">media-nas · 14.7/24.1 GB · 19 min</div>
+        <div style="height:2px;background:rgba(255,255,255,.09);margin-top:8px"><div style="width:61%;height:2px;background:#00c48f"></div></div>
+      </div>
+      <div style="font:500 11px ui-monospace,Menlo,monospace;color:#00c48f;padding-top:3px">61%</div>
+    </div>
+    <div style="display:flex;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px ui-monospace,Menlo,monospace;color:#00c48f;padding-top:3px">UP</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px">dist-2026.08.tar.gz</div>
+        <div style="font:400 10.5px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);margin-top:2px">edge-01 · 88/210 MB · 3.7 MB/s</div>
+        <div style="height:2px;background:rgba(255,255,255,.09);margin-top:8px"><div style="width:42%;height:2px;background:#00c48f"></div></div>
+      </div>
+      <div style="font:500 11px ui-monospace,Menlo,monospace;color:#00c48f;padding-top:3px">42%</div>
+    </div>
+    <div style="padding:13px 18px 6px;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(238,241,240,.3);border-bottom:1px solid rgba(255,255,255,.07)">QUEUED · 3</div>
+    <div style="display:flex;gap:12px;align-items:center;padding:9px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.28)">1</div>
+      <div style="flex:1;font-size:14.5px;color:rgba(238,241,240,.7)">Dune Part Two.mkv</div>
+      <div style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">31.7 GB</div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;padding:9px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.28)">2</div>
+      <div style="flex:1;font-size:14.5px;color:rgba(238,241,240,.7)">Sicario 2015.mkv</div>
+      <div style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">12.9 GB</div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;padding:9px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.28)">3</div>
+      <div style="flex:1;font-size:14.5px;color:rgba(238,241,240,.7)">Sicario 2015.en.srt</div>
+      <div style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">61 KB</div>
+    </div>
+    <div style="padding:13px 18px 6px;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:#e07a6a;border-bottom:1px solid rgba(255,255,255,.07)">FAILED · 1</div>
+    <div style="display:flex;gap:12px;align-items:center;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="width:38px;flex:none;font:500 9.5px ui-monospace,Menlo,monospace;color:#e07a6a">UP</div>
+      <div style="flex:1;min-width:0"><div style="font-size:14.5px">nginx.conf</div><div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:#e07a6a;margin-top:2px">EACCES · /etc/nginx not writable</div></div>
+      <div style="font:600 10px ui-monospace,Menlo,monospace;color:#eef1f0;border:1px solid rgba(255,255,255,.16);border-radius:4px;padding:4px 7px">RETRY</div>
+    </div>
+  </div>
+  <div style="display:flex;padding:12px 18px 38px;gap:24px;border-top:1px solid rgba(255,255,255,.07)">
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.4)">REMOTES</div>
+    <div style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:#eef1f0;padding-bottom:3px;border-bottom:2px solid #00c48f">QUEUE</div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.4)">KEYS</div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.4)">PREFS</div>
+  </div>
+</div>
+</x-import>
+
+</div></div>
+
+<div class="dv-opt" id="1c"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Console — column headers, tabular data, permissions and owner visible. Densest.</div>
+<div class="dv-card">
+
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="height:100%;box-sizing:border-box;padding-top:62px;background:#0b0c0c;color:#eef1f0;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:baseline;justify-content:space-between;padding:8px 16px 10px">
+    <div style="font:600 15px ui-monospace,Menlo,monospace;letter-spacing:-.2px">hosts</div>
+    <div style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.34)">5 · 2 up</div>
+  </div>
+  <div style="display:flex;gap:10px;padding:5px 16px 5px;border-top:1px solid rgba(255,255,255,.07);border-bottom:1px solid rgba(255,255,255,.07);font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.3)">
+    <span style="flex:1">HOST</span><span style="width:40px">PROTO</span><span style="width:52px;text-align:right">FREE</span><span style="width:26px;text-align:right">RTT</span>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <div style="display:flex;gap:10px;align-items:center;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="flex:1;min-width:0">
+        <div style="font:500 13.5px ui-monospace,Menlo,monospace;color:#eef1f0">media-nas</div>
+        <div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.36)">10.0.1.12:/export/media</div>
+      </div>
+      <div style="width:40px;font:400 10px ui-monospace,Menlo,monospace;color:#00c48f">nfs4</div>
+      <div style="width:52px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.7)">4.2T</div>
+      <div style="width:26px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5)">1ms</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="flex:1;min-width:0">
+        <div style="font:500 13.5px ui-monospace,Menlo,monospace">edge-01</div>
+        <div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.36)">deploy@edge-01.fsn1:22</div>
+      </div>
+      <div style="width:40px;font:400 10px ui-monospace,Menlo,monospace;color:#00c48f">sftp</div>
+      <div style="width:52px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.7)">38G</div>
+      <div style="width:26px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5)">24ms</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="flex:1;min-width:0">
+        <div style="font:500 13.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">backup-tank</div>
+        <div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">//192.168.1.20/tank</div>
+      </div>
+      <div style="width:40px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">smb3</div>
+      <div style="width:52px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">—</div>
+      <div style="width:26px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">—</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="flex:1;min-width:0">
+        <div style="font:500 13.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">plex-scratch</div>
+        <div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:#e0a83c">ESTALE · remount required</div>
+      </div>
+      <div style="width:40px;font:400 10px ui-monospace,Menlo,monospace;color:#e0a83c">nfs3</div>
+      <div style="width:52px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">—</div>
+      <div style="width:26px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">—</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="flex:1;min-width:0"><div style="font:500 13.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">localhost</div><div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">on this iPhone</div></div>
+      <div style="width:40px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">file</div>
+      <div style="width:52px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.5)">41G</div>
+      <div style="width:26px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">—</div>
+    </div>
+    <div style="padding:16px 16px 8px;font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.12em;color:rgba(238,241,240,.28);border-bottom:1px solid rgba(255,255,255,.05)">RECENT PATHS</div>
+    <div style="padding:7px 16px;font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55);border-bottom:1px solid rgba(255,255,255,.04)">media-nas:/export/media/films</div>
+    <div style="padding:7px 16px;font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55);border-bottom:1px solid rgba(255,255,255,.04)">edge-01:/srv/www/releases</div>
+    <div style="padding:7px 16px;font:400 11px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55)">edge-01:/var/log/nginx</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;padding:9px 16px 40px;border-top:1px solid rgba(255,255,255,.07)">
+    <div style="font:600 10px ui-monospace,Menlo,monospace;color:#00c48f">[+] host</div>
+    <div style="flex:1"></div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">queue 2</div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">keys</div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">prefs</div>
+  </div>
+</div>
+</x-import>
+
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="height:100%;box-sizing:border-box;padding-top:62px;background:#0b0c0c;color:#eef1f0;display:flex;flex-direction:column">
+  <div style="padding:8px 16px 9px;font:400 11px/16px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">
+    <span style="color:#00c48f">media-nas</span>:/export/media/<span style="color:#eef1f0">films</span>
+  </div>
+  <div style="display:flex;gap:10px;padding:5px 16px;border-top:1px solid rgba(255,255,255,.07);border-bottom:1px solid rgba(255,255,255,.07);font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.3)">
+    <span style="width:56px">MODE</span><span style="flex:1">NAME</span><span style="width:46px;text-align:right">SIZE</span><span style="width:42px;text-align:right">MTIME</span>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <div style="display:flex;gap:10px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="width:56px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">drwxr-x</span>
+      <span style="flex:1;font:500 12.5px ui-monospace,Menlo,monospace;color:#eef1f0;min-width:0">4K_HDR/</span>
+      <span style="width:46px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">31</span>
+      <span style="width:42px;text-align:right;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">02-19</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="width:56px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">drwxr-x</span>
+      <span style="flex:1;font:500 12.5px ui-monospace,Menlo,monospace;min-width:0">Documentaries/</span>
+      <span style="width:46px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">64</span>
+      <span style="width:42px;text-align:right;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">07-30</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="width:56px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--</span>
+      <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Arrival.2016.2160p.mkv</span>
+      <span style="width:46px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">18.4G</span>
+      <span style="width:42px;text-align:right;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">03-12</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="width:56px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--</span>
+      <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace;min-width:0">Arrival.2016.en.srt</span>
+      <span style="width:46px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">84K</span>
+      <span style="width:42px;text-align:right;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">03-12</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04);background:rgba(0,196,143,.06)">
+      <span style="width:56px;font:400 9.5px ui-monospace,Menlo,monospace;color:#00c48f">-rw-r--</span>
+      <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">BladeRunner2049.mkv</span>
+      <span style="width:46px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:#00c48f">61%</span>
+      <span style="width:42px;text-align:right;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">↓</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="width:56px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--</span>
+      <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace;min-width:0">Dune.Part.Two.mkv</span>
+      <span style="width:46px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">31.7G</span>
+      <span style="width:42px;text-align:right;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">04-04</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="width:56px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">-rw-r--</span>
+      <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace;min-width:0">Sicario.2015.mkv</span>
+      <span style="width:46px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">12.9G</span>
+      <span style="width:42px;text-align:right;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">01-08</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="width:56px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">-rw----</span>
+      <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace;min-width:0;color:rgba(238,241,240,.45)">.metadata/</span>
+      <span style="width:46px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">12</span>
+      <span style="width:42px;text-align:right;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">08-11</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="width:56px;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">lrwxrwx</span>
+      <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace;min-width:0">latest → 4K_HDR</span>
+      <span style="width:46px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">link</span>
+      <span style="width:42px;text-align:right;font:400 9.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35)">08-01</span>
+    </div>
+    <div style="padding:10px 16px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.28)">142 entries · 1.9T · uid 1000 gid 1000</div>
+  </div>
+  <div style="display:flex;gap:14px;align-items:center;padding:9px 16px 40px;border-top:1px solid rgba(255,255,255,.07);font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">
+    <span>mkdir</span><span>rename</span><span>chmod</span><span style="flex:1"></span><span style="color:#00c48f">put ↑</span><span style="color:#00c48f">get ↓</span>
+  </div>
+</div>
+</x-import>
+
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="height:100%;box-sizing:border-box;padding-top:62px;background:#0b0c0c;color:#eef1f0;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:baseline;justify-content:space-between;padding:8px 16px 10px">
+    <div style="font:600 15px ui-monospace,Menlo,monospace">queue</div>
+    <div style="font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.34)">2 run · 3 wait · 1 err</div>
+  </div>
+  <div style="display:flex;gap:10px;padding:5px 16px;border-top:1px solid rgba(255,255,255,.07);border-bottom:1px solid rgba(255,255,255,.07);font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:rgba(238,241,240,.3)">
+    <span style="width:20px">DIR</span><span style="flex:1">FILE</span><span style="width:58px;text-align:right">RATE</span><span style="width:34px;text-align:right">DONE</span>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <div style="padding:7px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <div style="display:flex;gap:10px;align-items:center">
+        <span style="width:20px;font:500 10px ui-monospace,Menlo,monospace;color:#00c48f">↓</span>
+        <span style="flex:1;min-width:0;font:400 12.5px ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">BladeRunner2049.mkv</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">8.4M/s</span>
+        <span style="width:34px;text-align:right;font:500 10.5px ui-monospace,Menlo,monospace;color:#00c48f">61%</span>
+      </div>
+      <div style="display:flex;gap:1px;margin-top:6px;height:3px">
+        <div style="flex:61;background:#00c48f"></div><div style="flex:39;background:rgba(255,255,255,.08)"></div>
+      </div>
+      <div style="font:400 9.5px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.32);margin-top:4px">media-nas:/export/media/films · 14.7/24.1G · eta 19m</div>
+    </div>
+    <div style="padding:7px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <div style="display:flex;gap:10px;align-items:center">
+        <span style="width:20px;font:500 10px ui-monospace,Menlo,monospace;color:#00c48f">↑</span>
+        <span style="flex:1;min-width:0;font:400 12.5px ui-monospace,Menlo,monospace">dist-2026.08.tar.gz</span>
+        <span style="width:58px;text-align:right;font:400 10.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">3.7M/s</span>
+        <span style="width:34px;text-align:right;font:500 10.5px ui-monospace,Menlo,monospace;color:#00c48f">42%</span>
+      </div>
+      <div style="display:flex;gap:1px;margin-top:6px;height:3px">
+        <div style="flex:42;background:#00c48f"></div><div style="flex:58;background:rgba(255,255,255,.08)"></div>
+      </div>
+      <div style="font:400 9.5px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.32);margin-top:4px">edge-01:/srv/www/releases · 88/210M · eta 33s</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="width:20px;font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">↓</span>
+      <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55)">Dune.Part.Two.mkv</span>
+      <span style="width:58px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">wait</span>
+      <span style="width:34px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">31.7G</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="width:20px;font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">↓</span>
+      <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55)">Sicario.2015.mkv</span>
+      <span style="width:58px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">wait</span>
+      <span style="width:34px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">12.9G</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="width:20px;font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">↓</span>
+      <span style="flex:1;font:400 12.5px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.55)">Sicario.2015.en.srt</span>
+      <span style="width:58px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">wait</span>
+      <span style="width:34px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">61K</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:7px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="width:20px;font:500 10px ui-monospace,Menlo,monospace;color:#e07a6a">↑</span>
+      <span style="flex:1;min-width:0;font:400 12.5px ui-monospace,Menlo,monospace">nginx.conf<div style="font:400 9.5px/14px ui-monospace,Menlo,monospace;color:#e07a6a;margin-top:2px">EACCES /etc/nginx/nginx.conf</div></span>
+      <span style="width:58px;text-align:right;font:500 9.5px ui-monospace,Menlo,monospace;color:#eef1f0">retry</span>
+      <span style="width:34px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.3)">2K</span>
+    </div>
+    <div style="padding:14px 16px 7px;font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.12em;color:rgba(238,241,240,.28);border-bottom:1px solid rgba(255,255,255,.04)">DONE · 14:02–09:31</div>
+    <div style="display:flex;gap:10px;align-items:center;padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="width:20px;font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">↓</span>
+      <span style="flex:1;font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.42)">Arrival.2016.en.srt</span>
+      <span style="width:34px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">84K</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;padding:6px 16px">
+      <span style="width:20px;font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">↓</span>
+      <span style="flex:1;font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.42)">backup-2026-08-11.sql.gz</span>
+      <span style="width:34px;text-align:right;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.25)">1.4G</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:14px;align-items:center;padding:9px 16px 40px;border-top:1px solid rgba(255,255,255,.07);font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">
+    <span>pause all</span><span>clear done</span><span style="flex:1"></span><span style="color:#00c48f">limit 20M/s</span>
+  </div>
+</div>
+</x-import>
+
+</div></div>
+
+<div class="dv-opt" id="1d"><div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Android — remaining three screens in <a class="dv-oid" href="#1b">1b</a>'s language: add connection, keys, settings.</div>
+<div class="dv-card">
+
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="412px,892px">
+<div style="min-height:100%;box-sizing:border-box;background:#0e100f;color:#eef1f0;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;gap:14px;padding:14px 18px 10px">
+    <div style="font-size:19px;color:rgba(238,241,240,.6)">←</div>
+    <div style="flex:1;font-size:17px;font-weight:600">New connection</div>
+    <div style="font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:#00c48f">TEST</div>
+  </div>
+  <div style="display:flex;gap:6px;padding:4px 18px 16px">
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:#0b0f0e;background:#00c48f;padding:5px 9px;border-radius:4px">SFTP</div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:rgba(238,241,240,.5);border:1px solid rgba(255,255,255,.12);padding:5px 9px;border-radius:4px">NFS</div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:rgba(238,241,240,.5);border:1px solid rgba(255,255,255,.12);padding:5px 9px;border-radius:4px">SMB</div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:rgba(238,241,240,.5);border:1px solid rgba(255,255,255,.12);padding:5px 9px;border-radius:4px">LOCAL</div>
+  </div>
+  <div style="padding:0 18px">
+    <div style="border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:7px;margin-bottom:16px">
+      <div style="font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:rgba(238,241,240,.32)">NAME</div>
+      <div style="font-size:15.5px;margin-top:5px">edge-02</div>
+    </div>
+    <div style="display:flex;gap:14px;margin-bottom:16px">
+      <div style="flex:1;border-bottom:1px solid #00c48f;padding-bottom:7px">
+        <div style="font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#00c48f">HOST</div>
+        <div style="font:400 15px ui-monospace,Menlo,monospace;margin-top:5px">edge-02.fsn1.internal</div>
+      </div>
+      <div style="width:56px;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:7px">
+        <div style="font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:rgba(238,241,240,.32)">PORT</div>
+        <div style="font:400 15px ui-monospace,Menlo,monospace;margin-top:5px">22</div>
+      </div>
+    </div>
+    <div style="border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:7px;margin-bottom:16px">
+      <div style="font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:rgba(238,241,240,.32)">USER</div>
+      <div style="font:400 15px ui-monospace,Menlo,monospace;margin-top:5px">deploy</div>
+    </div>
+    <div style="font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:rgba(238,241,240,.32);margin-bottom:8px">AUTH</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <div style="flex:1;text-align:center;border:1px solid #00c48f;border-radius:5px;padding:9px 0;font-size:12.5px;font-weight:600;color:#00c48f">Key</div>
+      <div style="flex:1;text-align:center;border:1px solid rgba(255,255,255,.12);border-radius:5px;padding:9px 0;font-size:12.5px;color:rgba(238,241,240,.55)">Password</div>
+      <div style="flex:1;text-align:center;border:1px solid rgba(255,255,255,.12);border-radius:5px;padding:9px 0;font-size:12.5px;color:rgba(238,241,240,.55)">Agent</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:9px;margin-bottom:16px">
+      <div style="flex:1">
+        <div style="font-size:14.5px;font-weight:500">id_ed25519</div>
+        <div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.36);margin-top:2px">SHA256:v8Kx…q2Lp · Keystore</div>
+      </div>
+      <div style="font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.45)">CHANGE</div>
+    </div>
+    <div style="border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:7px;margin-bottom:16px">
+      <div style="font:500 9.5px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:rgba(238,241,240,.32)">INITIAL PATH</div>
+      <div style="font:400 15px ui-monospace,Menlo,monospace;margin-top:5px">/srv/www</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="flex:1;font-size:14px">Compression</div>
+      <div style="width:34px;height:18px;border-radius:9px;background:#00c48f;position:relative"><div style="position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:#0b0f0e"></div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="flex:1;font-size:14px">Follow symlinks</div>
+      <div style="width:34px;height:18px;border-radius:9px;background:rgba(255,255,255,.14);position:relative"><div style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:rgba(238,241,240,.55)"></div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:9px 0">
+      <div style="flex:1;font-size:14px">Mount read-only</div>
+      <div style="width:34px;height:18px;border-radius:9px;background:rgba(255,255,255,.14);position:relative"><div style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:rgba(238,241,240,.55)"></div></div>
+    </div>
+  </div>
+  <div style="padding:18px;margin-top:auto">
+    <div style="background:#00c48f;color:#08120e;border-radius:6px;text-align:center;padding:12px 0;font-size:14.5px;font-weight:600">Save &amp; connect</div>
+  </div>
+</div>
+</x-import>
+
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="412px,892px">
+<div style="min-height:100%;box-sizing:border-box;background:#0e100f;color:#eef1f0;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;gap:14px;padding:14px 18px 12px">
+    <div style="font-size:19px;color:rgba(238,241,240,.6)">←</div>
+    <div style="flex:1;font-size:17px;font-weight:600">Keys &amp; credentials</div>
+  </div>
+  <div style="padding:2px 18px 6px;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(238,241,240,.3);border-bottom:1px solid rgba(255,255,255,.07)">PRIVATE KEYS · 3</div>
+  <div style="display:flex;gap:12px;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="width:44px;flex:none;font:500 9.5px/13px ui-monospace,Menlo,monospace;color:#00c48f;padding-top:2px">ED255<br>19</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:15.5px;font-weight:500">id_ed25519</div>
+      <div style="font:400 10.5px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);margin-top:2px">SHA256:v8Kx7dR…q2Lp</div>
+      <div style="display:flex;gap:12px;margin-top:7px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.34)">
+        <span>Keystore · biometric</span><span>2 hosts</span>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:12px;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="width:44px;flex:none;font:500 9.5px/13px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35);padding-top:2px">RSA<br>4096</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:15.5px;font-weight:500;color:rgba(238,241,240,.75)">id_rsa_legacy</div>
+      <div style="font:400 10.5px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);margin-top:2px">SHA256:Jm3pA1z…8fQe</div>
+      <div style="display:flex;gap:12px;margin-top:7px;font:400 10px ui-monospace,Menlo,monospace;color:#e0a83c">
+        <span>passphrase only</span><span>unused 8 mo</span>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:12px;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="width:44px;flex:none;font:500 9.5px/13px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.35);padding-top:2px">ECDSA<br>P256</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:15.5px;font-weight:500;color:rgba(238,241,240,.75)">ci-runner</div>
+      <div style="font:400 10.5px/15px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4);margin-top:2px">SHA256:Qc0Vb9x…Ttu1</div>
+      <div style="display:flex;gap:12px;margin-top:7px;font:400 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.34)"><span>Keystore</span><span>1 host</span></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;padding:14px 18px 16px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1;text-align:center;border:1px solid #00c48f;border-radius:5px;padding:9px 0;font-size:12.5px;font-weight:600;color:#00c48f">Generate</div>
+    <div style="flex:1;text-align:center;border:1px solid rgba(255,255,255,.12);border-radius:5px;padding:9px 0;font-size:12.5px;color:rgba(238,241,240,.6)">Import</div>
+  </div>
+  <div style="padding:14px 18px 6px;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(238,241,240,.3);border-bottom:1px solid rgba(255,255,255,.07)">SAVED PASSWORDS · 2</div>
+  <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:14.5px">backup-tank</div>
+      <div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.36);margin-top:2px">smb3 · WORKGROUP\\admin</div>
+    </div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">REVEAL</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:14.5px">nas-admin</div>
+      <div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.36);margin-top:2px">sftp · 10.0.1.12</div>
+    </div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">REVEAL</div>
+  </div>
+  <div style="padding:14px 18px 6px;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(238,241,240,.3);border-bottom:1px solid rgba(255,255,255,.07)">KNOWN HOSTS · 4</div>
+  <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1;min-width:0">
+      <div style="font:400 12.5px ui-monospace,Menlo,monospace">edge-01.fsn1:22</div>
+      <div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.36);margin-top:2px">verified 11 Aug · ed25519</div>
+    </div>
+    <div style="width:7px;height:7px;border-radius:50%;background:#00c48f"></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1;min-width:0">
+      <div style="font:400 12.5px ui-monospace,Menlo,monospace;color:#e07a6a">staging.fsn1:22</div>
+      <div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:#e07a6a;margin-top:2px">fingerprint changed · review</div>
+    </div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;color:#eef1f0;border:1px solid rgba(255,255,255,.16);border-radius:4px;padding:4px 7px">VIEW</div>
+  </div>
+</div>
+</x-import>
+
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="412px,892px">
+<div style="min-height:100%;box-sizing:border-box;background:#0e100f;color:#eef1f0;display:flex;flex-direction:column">
+  <div style="padding:16px 18px 14px;font-size:22px;font-weight:600;letter-spacing:-.3px">Settings</div>
+  <div style="padding:2px 18px 6px;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(238,241,240,.3);border-bottom:1px solid rgba(255,255,255,.07)">TRANSFERS</div>
+  <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1"><div style="font-size:14.5px">Transfer on cellular</div><div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.36);margin-top:2px">wifi only unless overridden</div></div>
+    <div style="width:34px;height:18px;border-radius:9px;background:rgba(255,255,255,.14);position:relative"><div style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:rgba(238,241,240,.55)"></div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1"><div style="font-size:14.5px">Parallel transfers</div></div>
+    <div style="font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">3</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1"><div style="font-size:14.5px">Bandwidth limit</div></div>
+    <div style="font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">20 MB/s</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1"><div style="font-size:14.5px">Resume interrupted</div></div>
+    <div style="width:34px;height:18px;border-radius:9px;background:#00c48f;position:relative"><div style="position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:#0b0f0e"></div></div>
+  </div>
+  <div style="padding:15px 18px 6px;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(238,241,240,.3);border-bottom:1px solid rgba(255,255,255,.07)">BROWSING</div>
+  <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1"><div style="font-size:14.5px">Show hidden files</div></div>
+    <div style="width:34px;height:18px;border-radius:9px;background:#00c48f;position:relative"><div style="position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:#0b0f0e"></div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1"><div style="font-size:14.5px">Thumbnails over remote</div><div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.36);margin-top:2px">reads first 4 MB per file</div></div>
+    <div style="width:34px;height:18px;border-radius:9px;background:rgba(255,255,255,.14);position:relative"><div style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:rgba(238,241,240,.55)"></div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1"><div style="font-size:14.5px">Default sort</div></div>
+    <div style="font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.6)">name ↑</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1"><div style="font-size:14.5px">Cache</div><div style="font:400 10px/14px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.36);margin-top:2px">1.8 GB of 4 GB used</div></div>
+    <div style="font:500 10px ui-monospace,Menlo,monospace;color:#00c48f">CLEAR</div>
+  </div>
+  <div style="padding:15px 18px 6px;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(238,241,240,.3);border-bottom:1px solid rgba(255,255,255,.07)">SECURITY</div>
+  <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1"><div style="font-size:14.5px">Unlock with biometrics</div></div>
+    <div style="width:34px;height:18px;border-radius:9px;background:#00c48f;position:relative"><div style="position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:#0b0f0e"></div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1"><div style="font-size:14.5px">Strict host key checking</div></div>
+    <div style="width:34px;height:18px;border-radius:9px;background:#00c48f;position:relative"><div style="position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:#0b0f0e"></div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <div style="flex:1"><div style="font-size:14.5px">Keys &amp; credentials</div></div>
+    <div style="font:400 12px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.4)">3 keys ›</div>
+  </div>
+  <div style="padding:15px 18px 8px;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.16em;color:rgba(238,241,240,.3);border-bottom:1px solid rgba(255,255,255,.07)">ABOUT</div>
+  <div style="padding:11px 18px;font:400 10.5px/16px ui-monospace,Menlo,monospace;color:rgba(238,241,240,.34)">build 2026.08.3 · libssh2 1.11 · nfs-client 4.2</div>
+</div>
+</x-import>
+
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "build out <a class="dv-oid" href="#1c">1c</a> for all six screens" · "make <a class="dv-oid" href="#1b">1b</a>'s browser a grid with thumbnails" · "show <a class="dv-oid" href="#1a">1a</a> on Android too" · "add multi-select and error states"</p>
+</section>
+</x-dc>
+</body>
+</html>

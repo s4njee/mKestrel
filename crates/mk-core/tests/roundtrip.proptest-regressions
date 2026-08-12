@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 2aa4f115107e17498fb538f75fa64565fdba095413081b37d0e51eb3dea94960 # shrinks to j = Job { id: "", direction: Up, name: "", host_id: "", remote_path: "", local_path: "", bytes_done: 0, bytes_total: 0, rate_bytes_per_s: 982174227.4194779, eta_seconds: None, state: Running, attempt: 0, max_attempts: 1, errno: None, message: None, finished_at: None, verified: None }
