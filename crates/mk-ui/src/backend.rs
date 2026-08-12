@@ -6,15 +6,17 @@
 //! needs no UI change.
 
 use async_trait::async_trait;
-use mk_core::host::Entry;
+use mk_core::host::{Entry, Host};
 
 #[async_trait]
 pub trait FsBackend: Send + Sync + std::fmt::Debug {
-    async fn list(&self, path: &str) -> Result<Vec<Entry>, String>;
-    async fn mkdir(&self, path: &str) -> Result<(), String>;
-    async fn rename(&self, from: &str, to: &str) -> Result<(), String>;
-    async fn chmod(&self, path: &str, mode: u32) -> Result<(), String>;
-    async fn remove(&self, path: &str) -> Result<(), String>;
+    /// Every call names the host so a per-host connection pool can route
+    /// (E4-S6); the host is what backends connect to.
+    async fn list(&self, host: &Host, path: &str) -> Result<Vec<Entry>, String>;
+    async fn mkdir(&self, host: &Host, path: &str) -> Result<(), String>;
+    async fn rename(&self, host: &Host, from: &str, to: &str) -> Result<(), String>;
+    async fn chmod(&self, host: &Host, path: &str, mode: u32) -> Result<(), String>;
+    async fn remove(&self, host: &Host, path: &str) -> Result<(), String>;
 }
 
 /// Fallback backend so the UI can render standalone (empty listings).
@@ -23,19 +25,19 @@ pub struct EmptyBackend;
 
 #[async_trait]
 impl FsBackend for EmptyBackend {
-    async fn list(&self, _path: &str) -> Result<Vec<Entry>, String> {
+    async fn list(&self, _host: &Host, _path: &str) -> Result<Vec<Entry>, String> {
         Ok(Vec::new())
     }
-    async fn mkdir(&self, _path: &str) -> Result<(), String> {
+    async fn mkdir(&self, _host: &Host, _path: &str) -> Result<(), String> {
         Ok(())
     }
-    async fn rename(&self, _from: &str, _to: &str) -> Result<(), String> {
+    async fn rename(&self, _host: &Host, _from: &str, _to: &str) -> Result<(), String> {
         Ok(())
     }
-    async fn chmod(&self, _path: &str, _mode: u32) -> Result<(), String> {
+    async fn chmod(&self, _host: &Host, _path: &str, _mode: u32) -> Result<(), String> {
         Ok(())
     }
-    async fn remove(&self, _path: &str) -> Result<(), String> {
+    async fn remove(&self, _host: &Host, _path: &str) -> Result<(), String> {
         Ok(())
     }
 }

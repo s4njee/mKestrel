@@ -28,52 +28,80 @@ static SFTP: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
 static NFS: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
 static STORE_PATH: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
 
-/// Bridges the UI's `mk_ui::FsBackend` to `mk_vfs::VfsBackend` — the swap
-/// point where a real SFTP/SMB/NFS backend replaces the mock with no UI change.
+/// Bridges the UI's `mk_ui::FsBackend` to a per-host connection pool
+/// (`mk_vfs::ConnectionPool`, E4-S6): each call names its host; the pool
+/// caches a live backend per host, closes idle sessions, and evicts the LRU
+/// when full. The factory maps host protocol -> real backend.
 #[derive(Debug)]
 struct BackendAdapter {
-    inner: Arc<dyn mk_vfs::VfsBackend>,
+    pool: Arc<mk_vfs::ConnectionPool>,
 }
 
 #[async_trait]
 impl FsBackend for BackendAdapter {
-    async fn list(&self, path: &str) -> Result<Vec<Entry>, String> {
-        self.inner.list(path, None).await.map_err(|e| e.to_string())
+    async fn list(&self, host: &mk_core::host::Host, path: &str) -> Result<Vec<Entry>, String> {
+        self.pool
+            .get(host)
+            .await
+            .list(path, None)
+            .await
+            .map_err(|e| e.to_string())
     }
-    async fn mkdir(&self, path: &str) -> Result<(), String> {
-        self.inner.mkdir(path).await.map_err(|e| e.to_string())
+    async fn mkdir(&self, host: &mk_core::host::Host, path: &str) -> Result<(), String> {
+        self.pool
+            .get(host)
+            .await
+            .mkdir(path)
+            .await
+            .map_err(|e| e.to_string())
     }
-    async fn rename(&self, from: &str, to: &str) -> Result<(), String> {
-        self.inner.rename(from, to).await.map_err(|e| e.to_string())
+    async fn rename(&self, host: &mk_core::host::Host, from: &str, to: &str) -> Result<(), String> {
+        self.pool
+            .get(host)
+            .await
+            .rename(from, to)
+            .await
+            .map_err(|e| e.to_string())
     }
-    async fn chmod(&self, path: &str, mode: u32) -> Result<(), String> {
-        self.inner
+    async fn chmod(&self, host: &mk_core::host::Host, path: &str, mode: u32) -> Result<(), String> {
+        self.pool
+            .get(host)
+            .await
             .chmod(path, mode)
             .await
             .map_err(|e| e.to_string())
     }
-    async fn remove(&self, path: &str) -> Result<(), String> {
-        self.inner.remove(path).await.map_err(|e| e.to_string())
+    async fn remove(&self, host: &mk_core::host::Host, path: &str) -> Result<(), String> {
+        self.pool
+            .get(host)
+            .await
+            .remove(path)
+            .await
+            .map_err(|e| e.to_string())
     }
 }
 
 fn make_backend(local: bool, sftp: bool, nfs: bool) -> Arc<dyn FsBackend> {
-    let vfs: Arc<dyn mk_vfs::VfsBackend> = if nfs {
-        Arc::new(mk_vfs::NfsBackend::for_export(
-            "192.168.1.156",
-            "/mnt/raid6/ebooks",
-        ))
-    } else if sftp {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/Users/sanjee".into());
-        Arc::new(mk_vfs::SftpBackend::new(mk_vfs::SftpAuth::Key {
-            path: std::path::PathBuf::from(format!("{home}/.ssh/id_ed25519")),
-        }))
-    } else if local {
-        Arc::new(mk_vfs::LocalBackend)
-    } else {
-        Arc::new(mk_vfs::MockBackend::new())
-    };
-    Arc::new(BackendAdapter { inner: vfs })
+    let key_path = std::env::var("HOME")
+        .map(|home| std::path::PathBuf::from(format!("{home}/.ssh/id_ed25519")))
+        .unwrap_or_default();
+    let pool = Arc::new(mk_vfs::ConnectionPool::new(move |host| {
+        let vfs: Arc<dyn mk_vfs::VfsBackend> = match host.protocol {
+            mk_core::host::Protocol::Sftp if sftp => {
+                Arc::new(mk_vfs::SftpBackend::new(mk_vfs::SftpAuth::Key {
+                    path: key_path.clone(),
+                }))
+            }
+            mk_core::host::Protocol::Nfs3 | mk_core::host::Protocol::Nfs4 if nfs => Arc::new(
+                mk_vfs::NfsBackend::for_export(&host.address, &host.initial_path),
+            ),
+            mk_core::host::Protocol::File if local => Arc::new(mk_vfs::LocalBackend),
+            _ => Arc::new(mk_vfs::MockBackend::new()),
+        };
+        vfs
+    }));
+    mk_vfs::spawn_pool_reaper(pool.clone(), std::time::Duration::from_secs(15));
+    Arc::new(BackendAdapter { pool })
 }
 
 #[allow(non_snake_case)] // dioxus root component

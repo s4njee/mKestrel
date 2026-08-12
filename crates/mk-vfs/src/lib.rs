@@ -16,12 +16,14 @@ mod error;
 mod local;
 mod mock;
 mod nfs;
+mod pool;
 mod sftp;
 
 pub use error::{VfsError, VfsErrorKind};
 pub use local::LocalBackend;
 pub use mock::MockBackend;
 pub use nfs::NfsBackend;
+pub use pool::{spawn_pool_reaper, ConnectionPool};
 pub use sftp::{SftpAuth, SftpBackend};
 
 use async_trait::async_trait;

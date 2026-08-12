@@ -646,11 +646,12 @@ impl Store {
         *self.listing.write() = Listing::Loading;
         *self.listing_error.write() = None;
         *self.cwd.write() = cwd.clone();
+        let host = self.selected_host();
         let this = *self;
         spawn(async move {
             let mut this = this;
             tokio::time::sleep(Duration::from_millis(180)).await;
-            let entries = list_dir(this, &cwd).await;
+            let entries = list_dir(this, &host, &cwd).await;
             *this.listing.write() = Listing::Loaded(entries);
         });
     }
@@ -658,10 +659,11 @@ impl Store {
     /// Re-list the current directory through the backend after a mutation.
     pub fn reload(&mut self) {
         let cwd = self.cwd.read().clone();
+        let host = self.selected_host();
         let this = *self;
         spawn(async move {
             let mut this = this;
-            let entries = list_dir(this, &cwd).await;
+            let entries = list_dir(this, &host, &cwd).await;
             *this.listing.write() = Listing::Loaded(entries);
         });
     }
@@ -1241,15 +1243,16 @@ impl Store {
         };
 
         if let Some(op) = op {
+            let host = self.selected_host();
             let this = *self;
             spawn(async move {
                 let mut this = this;
                 let backend = this.backend.read().clone();
                 let result = match &op {
-                    FileOp::Mkdir { path } => backend.mkdir(path).await,
-                    FileOp::Rename { from, to } => backend.rename(from, to).await,
-                    FileOp::Chmod { path, mode } => backend.chmod(path, *mode).await,
-                    FileOp::Remove { path } => backend.remove(path).await,
+                    FileOp::Mkdir { path } => backend.mkdir(&host, path).await,
+                    FileOp::Rename { from, to } => backend.rename(&host, from, to).await,
+                    FileOp::Chmod { path, mode } => backend.chmod(&host, path, *mode).await,
+                    FileOp::Remove { path } => backend.remove(&host, path).await,
                 };
                 match result {
                     Ok(()) => {
@@ -1275,17 +1278,36 @@ enum FileOp {
 
 /// List a directory through the injected backend (never blocks the UI).
 /// Failures (e.g. EACCES) are captured for the E11 error state.
-async fn list_dir(this: Store, path: &str) -> Vec<Entry> {
+async fn list_dir(this: Store, host: &Host, path: &str) -> Vec<Entry> {
     let mut this = this;
     let backend = this.backend.read().clone();
-    match backend.list(path).await {
+    match backend.list(host, path).await {
         Ok(entries) => {
             *this.listing_error.write() = None;
+            this.mark_host_status(HostStatus::Mounted);
             entries
         }
         Err(message) => {
             *this.listing_error.write() = Some(message);
+            this.mark_host_status(HostStatus::Unreachable);
             Vec::new()
+        }
+    }
+}
+
+impl Store {
+    /// Drive the rail's host status from the last op result (E4-S6); the
+    /// signal updates render within a frame.
+    fn mark_host_status(&mut self, status: HostStatus) {
+        let id = self.selected_host_id.read().clone();
+        let mut hosts = self.hosts.write();
+        if let Some(h) = hosts.iter_mut().find(|h| h.id == id) {
+            if status == HostStatus::Mounted {
+                h.status = HostStatus::Mounted;
+                h.mounted_at = Some(fixtures::now());
+            } else if h.status == HostStatus::Mounted {
+                h.status = status;
+            }
         }
     }
 }
