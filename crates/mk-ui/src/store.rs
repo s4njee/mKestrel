@@ -15,7 +15,7 @@ use mk_core::host::{AuthMethod, Entry, EntryKind, Host, HostOptions, HostStatus,
 use mk_core::job::{Direction, Job, JobState};
 use mk_core::settings::{Settings, SortDir, SortKey, SortSpec};
 
-use crate::backend::{EmptyBackend, FsBackend};
+use crate::backend::{EmptyBackend, FsBackend, PasswordVault};
 use crate::mock;
 
 /// Top-level screen (E2-S1 routing is a later epic; this is the switcher).
@@ -198,6 +198,11 @@ pub enum Dialog {
     Remount {
         id: String,
     },
+    /// Ask for a host password before connecting (E4-S6).
+    HostPassword {
+        host_id: String,
+        password: String,
+    },
 }
 
 /// Everything the UI needs, held as Copy signal handles in context.
@@ -235,6 +240,8 @@ pub struct Store {
     pub dialog_error: Signal<Option<String>>,
     /// Injected filesystem backend (E4); swap the Arc to swap the backend.
     pub backend: Signal<Arc<dyn FsBackend>>,
+    /// Shared host-password store supplied by the app (E4-S6).
+    pub vault: Signal<PasswordVault>,
     /// Lazy inspector metadata (E6-S2), keyed to the focused entry.
     pub inspector_codec: Signal<Option<String>>,
     pub inspector_sha256: Signal<Option<String>>,
@@ -243,47 +250,25 @@ pub struct Store {
 }
 
 #[component]
-pub fn StoreProvider(
-    children: Element,
-    initial: Screen,
-    local: bool,
-    sftp: bool,
-    nfs: bool,
-    store_path: Option<String>,
-) -> Element {
+pub fn StoreProvider(children: Element, initial: Screen, store_path: Option<String>) -> Element {
     // The backend is provided by the app through context (a `Box<dyn FsBackend>`
     // prop would break the generated props PartialEq). Default to empty so the
     // UI can render standalone.
     let backend: Arc<dyn FsBackend> =
         try_consume_context::<Arc<dyn FsBackend>>().unwrap_or_else(|| Arc::new(EmptyBackend));
+    let vault = try_consume_context::<PasswordVault>().unwrap_or_else(|| {
+        std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new()))
+    });
     // Restore persisted state if present (E3-S3); `running` jobs come back
     // `waiting`. `--local` always starts at the device root.
-    let mut seeded = if local || sftp || nfs {
-        mk_core::persistence::StoredState::from_demo()
-    } else {
-        store_path
-            .as_ref()
-            .and_then(|p| mk_core::persistence::load(std::path::Path::new(p)).ok())
-            .unwrap_or_else(mk_core::persistence::StoredState::from_demo)
-    };
-    if sftp {
-        seeded.hosts = vec![fixtures::freya_host()];
-        seeded.selected_host_id = "host-freya".into();
-        seeded.cwd = "/home/sanjee".into();
-    }
-    if nfs {
-        seeded.hosts = vec![fixtures::freya_nfs_host()];
-        seeded.selected_host_id = "host-freya-nfs".into();
-        seeded.cwd = "/mnt/raid6/ebooks".into();
-    }
+    let mut seeded = store_path
+        .as_ref()
+        .and_then(|p| mk_core::persistence::load(std::path::Path::new(p)).ok())
+        .unwrap_or_else(seed_state);
     seeded.sanitize_jobs();
     let demo = seeded;
-    let selected_init = if local {
-        "host-localhost".to_string()
-    } else {
-        demo.selected_host_id
-    };
-    let cwd_init = if local { "/".to_string() } else { demo.cwd };
+    let selected_init = demo.selected_host_id;
+    let cwd_init = demo.cwd;
     let store = Store {
         hosts: use_signal(|| demo.hosts),
         selected_host_id: use_signal(|| selected_init),
@@ -306,10 +291,11 @@ pub fn StoreProvider(
         jobs: use_signal(|| demo.jobs),
         credentials: use_signal(|| demo.credentials),
         settings: use_signal(|| demo.settings),
-        rate_history: use_signal(fixtures::rate_history),
+        rate_history: use_signal(rate_history_init),
         dialog: use_signal(|| None),
         dialog_error: use_signal(|| None),
         backend: use_signal(|| backend),
+        vault: use_signal(|| vault),
         inspector_codec: use_signal(|| None),
         inspector_sha256: use_signal(|| None),
         inspector_thumb: use_signal(|| None),
@@ -317,13 +303,45 @@ pub fn StoreProvider(
     use_context_provider(|| store);
     start_mock_ticker(store);
     start_persister(store, store_path);
-    // Load the initial directory through the backend after mount.
+    // Load the initial directory through the backend after mount; a real
+    // password-auth host prompts for its credential before connecting.
     let mount_store = store;
     use_effect(move || {
         let mut s = mount_store;
-        s.reload();
+        let host = s.selected_host();
+        if host.is_real && host.auth == AuthMethod::Password && s.password_for(&host.id).is_none() {
+            s.open_dialog(Dialog::HostPassword {
+                host_id: host.id,
+                password: String::new(),
+            });
+        } else {
+            s.reload();
+        }
     });
     rsx! { {children} }
+}
+
+#[cfg(debug_assertions)]
+fn rate_history_init() -> Vec<f64> {
+    fixtures::rate_history()
+}
+
+#[cfg(not(debug_assertions))]
+fn rate_history_init() -> Vec<f64> {
+    // No fixture ring in release; the ticker feeds it live.
+    Vec::new()
+}
+
+/// Seed the store: debug builds get the fixture demo; release builds get the
+/// real hosts only (fixtures are compiled out of release).
+#[cfg(debug_assertions)]
+fn seed_state() -> mk_core::persistence::StoredState {
+    mk_core::persistence::StoredState::from_demo()
+}
+
+#[cfg(not(debug_assertions))]
+fn seed_state() -> mk_core::persistence::StoredState {
+    mk_core::persistence::StoredState::real_only()
 }
 
 /// Persist hosts/settings/credentials/queue every few seconds (E3-S3).
@@ -601,8 +619,38 @@ impl Store {
     // ------------------------------------------------------------------
 
     pub fn select_host(&mut self, id: String) {
+        if *self.selected_host_id.read() == id {
+            return;
+        }
+        let host = self.hosts.read().iter().find(|h| h.id == id).cloned();
+        let Some(host) = host else {
+            return;
+        };
+        // Real password-auth hosts prompt for a credential before connecting.
+        if host.is_real && host.auth == AuthMethod::Password && self.password_for(&id).is_none() {
+            self.open_dialog(Dialog::HostPassword {
+                host_id: id,
+                password: String::new(),
+            });
+            return;
+        }
         *self.selected_host_id.write() = id;
         self.selection.write().clear();
+        // Navigate to the host's root directory.
+        *self.cwd.write() = host.initial_path.clone();
+        self.reload();
+    }
+
+    pub fn password_for(&self, host_id: &str) -> Option<String> {
+        self.vault.read().lock().unwrap().get(host_id).cloned()
+    }
+
+    pub fn set_password(&mut self, host_id: &str, password: String) {
+        self.vault
+            .read()
+            .lock()
+            .unwrap()
+            .insert(host_id.to_string(), password);
     }
 
     /// Jump to an absolute path (ancestor crumb). Pushes history.
@@ -1085,6 +1133,7 @@ impl Store {
             rtt_ms: None,
             mounted_at: None,
             retrans: 0,
+            is_real: false,
         };
         let mut hosts = self.hosts.write();
         if let Some(existing) = hosts.iter_mut().find(|h| h.id == host.id) {
@@ -1230,6 +1279,23 @@ impl Store {
                 return;
             }
             Dialog::NewHost(_) => return,
+            Dialog::HostPassword { host_id, password } => {
+                let pw = password.trim().to_string();
+                if pw.is_empty() {
+                    return self.set_dialog_error("password required".into());
+                }
+                self.set_password(&host_id, pw);
+                *self.dialog.write() = None;
+                // Now connect: select the host and browse its root.
+                let host = self.hosts.read().iter().find(|h| h.id == host_id).cloned();
+                if let Some(host) = host {
+                    *self.selected_host_id.write() = host_id;
+                    self.selection.write().clear();
+                    *self.cwd.write() = host.initial_path.clone();
+                    self.reload();
+                }
+                return;
+            }
             Dialog::WipeCredentials => {
                 self.wipe_credentials();
                 *self.dialog.write() = None;

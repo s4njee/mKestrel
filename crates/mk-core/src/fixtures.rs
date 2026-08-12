@@ -7,6 +7,8 @@
 //! reference so the mockup copy renders deterministically in every timezone
 //! (display uses UTC for fixture timestamps).
 
+#![cfg_attr(not(debug_assertions), allow(unused_imports))]
+
 use chrono::{TimeZone, Utc};
 
 use crate::credentials::{Credentials, KeyType, KnownHost, SecretStorage, SshKey};
@@ -46,6 +48,7 @@ fn t(y: i32, mo: u32, d: u32, h: u32, mi: u32, s: u32) -> i64 {
 // Hosts (`2a` rail)
 // ---------------------------------------------------------------------------
 
+#[cfg(debug_assertions)]
 pub fn hosts() -> Vec<Host> {
     let now = now();
     let mounted = Some(now - 15_120); // "mounted 4h 12m"
@@ -68,6 +71,7 @@ pub fn hosts() -> Vec<Host> {
             rtt_ms: Some(1),
             mounted_at: mounted,
             retrans: 0,
+            is_real: false,
         },
         Host {
             id: "host-edge-01".into(),
@@ -86,6 +90,7 @@ pub fn hosts() -> Vec<Host> {
             rtt_ms: Some(24),
             mounted_at: None,
             retrans: 0,
+            is_real: false,
         },
         Host {
             id: "host-backup-tank".into(),
@@ -104,6 +109,7 @@ pub fn hosts() -> Vec<Host> {
             rtt_ms: None,
             mounted_at: None,
             retrans: 0,
+            is_real: false,
         },
         Host {
             id: "host-plex-scratch".into(),
@@ -122,6 +128,7 @@ pub fn hosts() -> Vec<Host> {
             rtt_ms: Some(4),
             mounted_at: None,
             retrans: 3,
+            is_real: false,
         },
         Host {
             id: "host-localhost".into(),
@@ -140,6 +147,7 @@ pub fn hosts() -> Vec<Host> {
             rtt_ms: Some(0),
             mounted_at: mounted,
             retrans: 0,
+            is_real: false,
         },
         Host {
             id: "host-nas-photos".into(),
@@ -158,6 +166,7 @@ pub fn hosts() -> Vec<Host> {
             rtt_ms: None,
             mounted_at: None,
             retrans: 0,
+            is_real: false,
         },
         Host {
             id: "host-vault".into(),
@@ -176,6 +185,7 @@ pub fn hosts() -> Vec<Host> {
             rtt_ms: None,
             mounted_at: None,
             retrans: 0,
+            is_real: false,
         },
         Host {
             id: "host-pi-relay".into(),
@@ -194,6 +204,7 @@ pub fn hosts() -> Vec<Host> {
             rtt_ms: None,
             mounted_at: None,
             retrans: 0,
+            is_real: false,
         },
         Host {
             id: "host-build-cache".into(),
@@ -212,7 +223,12 @@ pub fn hosts() -> Vec<Host> {
             rtt_ms: None,
             mounted_at: None,
             retrans: 0,
+            is_real: false,
         },
+        // Real hosts (E4-S6): routed to live backends. The rail keeps the
+        // design's 9 mock hosts and adds the reachable freya server.
+        freya_host(),
+        freya_nfs_host(),
     ]
 }
 
@@ -262,6 +278,7 @@ fn dir(name: &str, items: u64, mtime: i64, inode: u64, hidden: bool) -> Entry {
 // Each entry carries inline annotation comments; push-per-entry keeps the
 // mockup order readable next to the handoff text.
 #[allow(clippy::vec_init_then_push)]
+#[cfg(debug_assertions)]
 pub fn visible_entries() -> Vec<Entry> {
     let mut v = Vec::with_capacity(24);
 
@@ -471,6 +488,7 @@ fn extra_entries() -> Vec<Entry> {
 }
 
 /// The full 142-entry listing: mockup rows first, then fillers.
+#[cfg(debug_assertions)]
 pub fn listing() -> Vec<Entry> {
     let mut v = visible_entries();
     v.extend(extra_entries());
@@ -481,6 +499,7 @@ pub fn listing() -> Vec<Entry> {
 // Queue (`2b`) — 6 active jobs + 14 done today
 // ---------------------------------------------------------------------------
 
+#[cfg(debug_assertions)]
 pub fn jobs() -> Vec<Job> {
     let now = now();
     let running = gib(14.7); // BladeRunner partial download
@@ -621,6 +640,7 @@ pub fn jobs() -> Vec<Job> {
 // Credentials (`2d`) — 3 keys, 2 passwords, 4 known hosts
 // ---------------------------------------------------------------------------
 
+#[cfg(debug_assertions)]
 pub fn credentials() -> Credentials {
     let now = now();
     let day = 86_400;
@@ -719,6 +739,7 @@ pub fn credentials() -> Credentials {
 
 /// 60s rate-history ring buffer, newest last. The readout shows the latest
 /// value (12.1 MiB/s in the mockup).
+#[cfg(debug_assertions)]
 pub fn rate_history() -> Vec<f64> {
     let mut out: Vec<f64> = (0..60)
         .map(|i| {
@@ -744,6 +765,7 @@ pub struct DemoState {
     pub now_secs: i64,
 }
 
+#[cfg(debug_assertions)]
 pub fn demo_state() -> DemoState {
     DemoState {
         hosts: hosts(),
@@ -756,6 +778,11 @@ pub fn demo_state() -> DemoState {
         settings: Settings::default(),
         now_secs: now(),
     }
+}
+
+/// The real hosts that exist in release builds (fixtures are debug-only).
+pub fn real_hosts() -> Vec<Host> {
+    vec![freya_host(), freya_nfs_host()]
 }
 
 /// The real SFTP host the `--sftp` demo connects to (E4-S3). Not part of the
@@ -778,6 +805,7 @@ pub fn freya_host() -> Host {
         rtt_ms: None,
         mounted_at: None,
         retrans: 0,
+        is_real: false,
     }
 }
 
@@ -801,6 +829,7 @@ pub fn freya_nfs_host() -> Host {
         rtt_ms: None,
         mounted_at: None,
         retrans: 0,
+        is_real: false,
     }
 }
 
@@ -873,7 +902,7 @@ mod tests {
     #[test]
     fn hosts_match_mockup() {
         let hosts = hosts();
-        assert_eq!(hosts.len(), 9);
+        assert_eq!(hosts.len(), 11);
         for (name, proto, free) in [
             ("media-nas", Protocol::Nfs4, Some("4.2T")),
             ("edge-01", Protocol::Sftp, Some("38G")),
@@ -971,7 +1000,7 @@ mod tests {
     #[test]
     fn demo_state_assembles() {
         let s = demo_state();
-        assert_eq!(s.hosts.len(), 9);
+        assert_eq!(s.hosts.len(), 11);
         assert_eq!(s.listing.len(), 142);
         assert_eq!(s.selected_host_id, "host-media-nas");
         assert_eq!(s.cwd, "/export/media/films");

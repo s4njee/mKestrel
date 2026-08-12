@@ -14,6 +14,7 @@
 
 mod error;
 mod local;
+#[cfg(debug_assertions)]
 mod mock;
 mod nfs;
 mod pool;
@@ -21,10 +22,11 @@ mod sftp;
 
 pub use error::{VfsError, VfsErrorKind};
 pub use local::LocalBackend;
+#[cfg(debug_assertions)]
 pub use mock::MockBackend;
 pub use nfs::NfsBackend;
 pub use pool::{spawn_pool_reaper, ConnectionPool};
-pub use sftp::{SftpAuth, SftpBackend};
+pub use sftp::{SftpAuth, SftpBackend, Vault as SftpVault};
 
 use async_trait::async_trait;
 use mk_core::host::{Entry, Host};

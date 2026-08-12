@@ -7,6 +7,7 @@ use dioxus::prelude::*;
 
 use crate::browser::BrowserScreen;
 use crate::dialogs::DialogOverlay;
+#[cfg(debug_assertions)]
 use crate::gallery::Gallery;
 use crate::queue::QueueScreen;
 use crate::settings::SettingsScreen;
@@ -40,9 +41,6 @@ pub fn Root(
     gallery: bool,
     queue_start: bool,
     host_dialog: bool,
-    local: bool,
-    sftp: bool,
-    nfs: bool,
     settings: bool,
     offline: bool,
     dev: bool,
@@ -52,9 +50,6 @@ pub fn Root(
         div { class: "app-root",
             StoreProvider {
                 initial: if queue_start { Screen::Queue } else { Screen::Browser },
-                local: local,
-                sftp: sftp,
-                nfs: nfs,
                 store_path: store_path,
                 StatusStrip {}
                 if demo {
@@ -124,6 +119,7 @@ fn ScreenRoot(
             *o.write() = false;
         }
     });
+    #[cfg(debug_assertions)]
     if gallery {
         return rsx! { Gallery {} };
     }
@@ -134,6 +130,7 @@ fn ScreenRoot(
                 Screen::Browser => rsx! { BrowserScreen {} },
                 Screen::Queue => rsx! { QueueScreen {} },
                 Screen::Settings => rsx! { SettingsScreen {} },
+                #[cfg(debug_assertions)]
                 Screen::Gallery => rsx! {
                     div { class: "screen-surface",
                         Gallery {}
@@ -144,6 +141,8 @@ fn ScreenRoot(
                         }
                     }
                 },
+                #[cfg(not(debug_assertions))]
+                Screen::Gallery => rsx! { div { class: "screen-surface" } },
             }}
         }
         DialogOverlay {}

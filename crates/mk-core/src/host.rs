@@ -83,6 +83,11 @@ pub struct Host {
     pub mounted_at: Option<i64>,
     /// Retransmission counter, surfaced for nfs hosts.
     pub retrans: u32,
+    /// A real reachable host (routed to a real backend) as opposed to a
+    /// fixture/mock host (E4-S6). `false` by default so fixtures and old
+    /// persisted stores behave as mock.
+    #[serde(default)]
+    pub is_real: bool,
 }
 
 /// Kind of a directory entry. `mode` stores permission bits only; the type

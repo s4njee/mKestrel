@@ -113,7 +113,7 @@ pub fn spawn_pool_reaper(pool: Arc<ConnectionPool>, interval: Duration) {
     });
 }
 
-#[cfg(test)]
+#[cfg(all(test, debug_assertions))]
 mod tests {
     use super::*;
     use crate::MockBackend;

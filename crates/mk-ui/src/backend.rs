@@ -46,3 +46,8 @@ impl FsBackend for EmptyBackend {
 /// drawer can swap implementations (E0-S4).
 pub type BackendFactory =
     std::sync::Arc<dyn Fn(bool) -> std::sync::Arc<dyn FsBackend> + Send + Sync>;
+
+/// Shared password store (host id -> password) supplied by the app so the
+/// UI can prompt for and update passwords at connect time (E4-S6).
+pub type PasswordVault =
+    std::sync::Arc<std::sync::Mutex<std::collections::HashMap<String, String>>>;

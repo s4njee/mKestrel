@@ -9,6 +9,7 @@ pub mod browser;
 pub mod components;
 pub mod dev;
 pub mod dialogs;
+#[cfg(debug_assertions)]
 pub mod gallery;
 pub mod mock;
 pub mod queue;
@@ -17,11 +18,12 @@ pub mod settings;
 pub mod store;
 pub mod tokens;
 
-pub use backend::{BackendFactory, EmptyBackend, FsBackend};
+pub use backend::{BackendFactory, EmptyBackend, FsBackend, PasswordVault};
 pub use browser::BrowserScreen;
 pub use components::*;
 #[cfg(debug_assertions)]
 pub use dev::DevDrawer;
+#[cfg(debug_assertions)]
 pub use gallery::Gallery;
 pub use queue::QueueScreen;
 pub use root::Root;

@@ -20,12 +20,9 @@ static DEMO: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
 static GALLERY: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
 static QUEUE_START: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
 static HOST_DIALOG: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-static LOCAL: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
 static SETTINGS: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
 static OFFLINE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
 static DEV: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-static SFTP: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-static NFS: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
 static STORE_PATH: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
 
 /// Bridges the UI's `mk_ui::FsBackend` to a per-host connection pool
@@ -81,22 +78,54 @@ impl FsBackend for BackendAdapter {
     }
 }
 
-fn make_backend(local: bool, sftp: bool, nfs: bool) -> Arc<dyn FsBackend> {
-    let key_path = std::env::var("HOME")
-        .map(|home| std::path::PathBuf::from(format!("{home}/.ssh/id_ed25519")))
-        .unwrap_or_default();
+#[cfg(debug_assertions)]
+fn mock_or_local() -> Arc<dyn mk_vfs::VfsBackend> {
+    Arc::new(mk_vfs::MockBackend::new())
+}
+
+#[cfg(not(debug_assertions))]
+fn mock_or_local() -> Arc<dyn mk_vfs::VfsBackend> {
+    // Release has no fixture/mock hosts; the fallback is never hit in
+    // practice, but must compile.
+    Arc::new(mk_vfs::LocalBackend)
+}
+
+fn make_backend() -> Arc<dyn FsBackend> {
+    // Shared host-password store, provided to both the UI (prompts) and the
+    // SFTP backends (read at connect time, so a correction just works).
+    let vault: mk_ui::PasswordVault =
+        Arc::new(std::sync::Mutex::new(std::collections::HashMap::new()));
+    let sftp_vault: mk_vfs::SftpVault = vault.clone();
+
     let pool = Arc::new(mk_vfs::ConnectionPool::new(move |host| {
-        let vfs: Arc<dyn mk_vfs::VfsBackend> = match host.protocol {
-            mk_core::host::Protocol::Sftp if sftp => {
-                Arc::new(mk_vfs::SftpBackend::new(mk_vfs::SftpAuth::Key {
-                    path: key_path.clone(),
-                }))
+        let vfs: Arc<dyn mk_vfs::VfsBackend> = if !host.is_real {
+            mock_or_local()
+        } else {
+            match host.protocol {
+                mk_core::host::Protocol::Sftp => {
+                    Arc::new(mk_vfs::SftpBackend::new(mk_vfs::SftpAuth::VaultPassword {
+                        vault: sftp_vault.clone(),
+                        host_id: host.id.clone(),
+                    }))
+                }
+                mk_core::host::Protocol::Nfs3 | mk_core::host::Protocol::Nfs4 => {
+                    if cfg!(any(target_os = "ios", target_os = "android")) {
+                        // Mobile cannot bind privileged source ports; the export
+                        // must be configured with `insecure`.
+                        Arc::new(mk_vfs::NfsBackend::for_mobile_export(
+                            &host.address,
+                            &host.initial_path,
+                        ))
+                    } else {
+                        Arc::new(mk_vfs::NfsBackend::for_export(
+                            &host.address,
+                            &host.initial_path,
+                        ))
+                    }
+                }
+                mk_core::host::Protocol::File => Arc::new(mk_vfs::LocalBackend),
+                _ => mock_or_local(),
             }
-            mk_core::host::Protocol::Nfs3 | mk_core::host::Protocol::Nfs4 if nfs => Arc::new(
-                mk_vfs::NfsBackend::for_export(&host.address, &host.initial_path),
-            ),
-            mk_core::host::Protocol::File if local => Arc::new(mk_vfs::LocalBackend),
-            _ => Arc::new(mk_vfs::MockBackend::new()),
         };
         vfs
     }));
@@ -110,18 +139,15 @@ fn App() -> Element {
     let gallery = *GALLERY.get().unwrap_or(&false);
     let queue_start = *QUEUE_START.get().unwrap_or(&false);
     let host_dialog = *HOST_DIALOG.get().unwrap_or(&false);
-    let local = *LOCAL.get().unwrap_or(&false);
     let settings = *SETTINGS.get().unwrap_or(&false);
     let offline = *OFFLINE.get().unwrap_or(&false);
     let dev = *DEV.get().unwrap_or(&false);
-    let sftp = *SFTP.get().unwrap_or(&false);
-    let nfs = *NFS.get().unwrap_or(&false);
     let store_path = STORE_PATH.get().cloned().flatten();
 
-    use_context_provider(move || make_backend(local, sftp, nfs));
+    use_context_provider(make_backend);
 
     // Let the dev drawer swap backends (E0-S4).
-    let factory: mk_ui::BackendFactory = Arc::new(move |local| make_backend(local, sftp, nfs));
+    let factory: mk_ui::BackendFactory = Arc::new(move |_| make_backend());
     use_context_provider(move || factory.clone());
 
     rsx! {
@@ -131,9 +157,6 @@ fn App() -> Element {
             gallery: gallery,
             queue_start: queue_start,
             host_dialog: host_dialog,
-            local: local,
-            sftp: sftp,
-            nfs: nfs,
             settings: settings,
             offline: offline,
             dev: dev,
@@ -191,12 +214,9 @@ fn main() {
     let _ = GALLERY.set(std::env::args().any(|a| a == "--gallery"));
     let _ = QUEUE_START.set(std::env::args().any(|a| a == "--queue"));
     let _ = HOST_DIALOG.set(std::env::args().any(|a| a == "--host"));
-    let _ = LOCAL.set(std::env::args().any(|a| a == "--local"));
     let _ = SETTINGS.set(std::env::args().any(|a| a == "--settings"));
     let _ = OFFLINE.set(std::env::args().any(|a| a == "--offline"));
     let _ = DEV.set(std::env::args().any(|a| a == "--dev"));
-    let _ = SFTP.set(std::env::args().any(|a| a == "--sftp"));
-    let _ = NFS.set(std::env::args().any(|a| a == "--nfs"));
     let _ = STORE_PATH.set(store_path);
     launch();
 }

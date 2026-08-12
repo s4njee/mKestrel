@@ -42,7 +42,24 @@ pub enum LoadError {
 }
 
 impl StoredState {
-    /// Seed from the handoff fixtures.
+    /// Seed with just the real hosts (no fixtures) — used by release builds.
+    pub fn real_only() -> Self {
+        let hosts = crate::fixtures::real_hosts();
+        StoredState {
+            selected_host_id: hosts.first().map(|h| h.id.clone()).unwrap_or_default(),
+            cwd: hosts
+                .first()
+                .map(|h| h.initial_path.clone())
+                .unwrap_or_default(),
+            hosts,
+            settings: Settings::default(),
+            credentials: Credentials::default(),
+            jobs: Vec::new(),
+        }
+    }
+
+    /// Seed from the handoff fixtures (debug builds).
+    #[cfg(debug_assertions)]
     pub fn from_demo() -> Self {
         let demo = crate::fixtures::demo_state();
         StoredState {
@@ -125,7 +142,7 @@ mod tests {
         let state = StoredState::from_demo();
         save(&path, &state).unwrap();
         let loaded = load(&path).unwrap();
-        assert_eq!(loaded.hosts.len(), 9);
+        assert_eq!(loaded.hosts.len(), 11);
         assert_eq!(loaded.settings, state.settings);
         assert_eq!(loaded.credentials, state.credentials);
         assert_eq!(loaded.jobs.len(), 20);

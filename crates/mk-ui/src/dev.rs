@@ -4,6 +4,8 @@
 //! the status strip. Everything here is `#[cfg(debug_assertions)]` — it is
 //! compiled out of release builds.
 
+#![cfg_attr(not(debug_assertions), allow(unused_imports))]
+
 use std::time::Duration;
 
 use dioxus::prelude::*;

@@ -125,11 +125,13 @@ prop_compose! {
         rtt_ms in any_optional(0u32..10_000),
         mounted_at in any_optional(any_i64()),
         retrans in 0u32..1000,
+        is_real in any::<bool>(),
     ) -> Host {
         Host {
             id, name, group, protocol, address, port, user, auth, key_id, initial_path,
             options: HostOptions { compression, follow_symlinks, read_only, show_hidden },
             status, free_bytes, rtt_ms, mounted_at, retrans,
+            is_real,
         }
     }
 }

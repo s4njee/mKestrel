@@ -16,13 +16,20 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use crate::error::{VfsError, VfsErrorKind};
 use crate::{ProbeLine, ProbeReport, ReadStream, StatFs, VfsBackend, WriteStream};
 
+/// A shared password store (host id -> password) so the UI can supply or
+/// correct a password at connect time without rebuilding the backend.
+pub type Vault = std::sync::Arc<std::sync::Mutex<std::collections::HashMap<String, String>>>;
+
 /// How the SFTP backend authenticates.
 #[derive(Debug, Clone)]
 pub enum SftpAuth {
     /// Public-key auth from a private key file (e.g. `~/.ssh/id_ed25519`).
     Key { path: PathBuf },
-    /// Password auth.
+    /// Password auth with a fixed password.
     Password { password: String },
+    /// Password auth read from a shared vault at each connect attempt, so a
+    /// wrong password can be corrected without recreating the backend.
+    VaultPassword { vault: Vault, host_id: String },
 }
 
 #[derive(Debug)]
@@ -90,9 +97,19 @@ impl SftpBackend {
                 })?;
 
         match &self.auth {
-            SftpAuth::Password { password } => {
+            SftpAuth::Password { .. } | SftpAuth::VaultPassword { .. } => {
+                let password = match &self.auth {
+                    SftpAuth::Password { password } => password.clone(),
+                    SftpAuth::VaultPassword { vault, host_id } => vault
+                        .lock()
+                        .unwrap()
+                        .get(host_id)
+                        .cloned()
+                        .unwrap_or_default(),
+                    _ => String::new(),
+                };
                 session
-                    .authenticate_password(&host.user, password)
+                    .authenticate_password(&host.user, &password)
                     .await
                     .map_err(|e| {
                         VfsError::new(VfsErrorKind::PermissionDenied, e.to_string())
@@ -392,6 +409,7 @@ mod tests {
             rtt_ms: None,
             mounted_at: None,
             retrans: 0,
+            is_real: false,
         }
     }
 

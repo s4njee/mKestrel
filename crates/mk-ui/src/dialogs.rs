@@ -42,6 +42,7 @@ fn dialog_tag(d: &Dialog) -> &'static str {
         Dialog::NewHost(_) => "host",
         Dialog::WipeCredentials => "wipe",
         Dialog::Remount { .. } => "remount",
+        Dialog::HostPassword { .. } => "password",
     }
 }
 
@@ -114,6 +115,15 @@ fn DialogBody(dialog: Dialog) -> Element {
                 Dialog::Remount { id } => rsx! {
                     div { class: "dialog-title", "remount" }
                     div { class: "dialog-hint", "mount {id} again? the connection was lost" }
+                },
+                Dialog::HostPassword { host_id, password } => rsx! {
+                    div { class: "dialog-title", "password" }
+                    div { class: "dialog-hint", "password for {host_id}" }
+                    DialogInput {
+                        label: "PASSWORD".to_string(),
+                        value: password.clone(),
+                        oninput: move |v| patch_dialog(store, |dlg| if let Dialog::HostPassword { password, .. } = dlg { *password = v; }),
+                    }
                 },
             }}
             if let Some(err) = &*store.dialog_error.read() {

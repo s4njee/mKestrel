@@ -78,7 +78,7 @@ pub struct KnownHost {
     pub changed_since: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Credentials {
     pub keys: Vec<SshKey>,
     pub passwords: Vec<SavedPassword>,

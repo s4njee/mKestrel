@@ -351,6 +351,7 @@ mod tests {
             rtt_ms: None,
             mounted_at: None,
             retrans: 0,
+            is_real: false,
         }
     }
 
