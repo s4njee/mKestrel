@@ -81,6 +81,29 @@ impl StoredState {
             }
         }
     }
+
+    /// Drop handoff fixture hosts and any jobs that belong to them. Device
+    /// debug builds persist the demo seed; those fake Running jobs occupy
+    /// every parallel slot (~48 min for BladeRunner) so real GETs sit Waiting.
+    pub fn strip_fixtures(&mut self) {
+        let real: std::collections::HashSet<String> = self
+            .hosts
+            .iter()
+            .filter(|h| h.is_real)
+            .map(|h| h.id.clone())
+            .collect();
+        self.hosts.retain(|h| h.is_real);
+        self.jobs.retain(|j| real.contains(&j.host_id));
+        if !self.hosts.iter().any(|h| h.id == self.selected_host_id) {
+            self.selected_host_id = self.hosts.first().map(|h| h.id.clone()).unwrap_or_default();
+            self.cwd = self
+                .hosts
+                .first()
+                .map(|h| h.initial_path.clone())
+                .unwrap_or_default();
+        }
+        self.sanitize_jobs();
+    }
 }
 
 /// Load + validate the store. A corrupt file is quarantined aside (kept for
@@ -177,5 +200,28 @@ mod tests {
     fn missing_file_is_not_found() {
         let path = temp("missing");
         assert!(matches!(load(&path), Err(LoadError::NotFound)));
+    }
+
+    #[cfg(debug_assertions)]
+    #[test]
+    fn strip_fixtures_keeps_only_real_hosts_and_jobs() {
+        let mut state = StoredState::from_demo();
+        let mut real = state.hosts[0].clone();
+        real.id = "host-real".into();
+        real.name = "real".into();
+        real.is_real = true;
+        state.hosts.push(real);
+        let mut job = state.jobs[0].clone();
+        job.id = "job-real".into();
+        job.host_id = "host-real".into();
+        job.name = "keep.me".into();
+        job.state = crate::job::JobState::Waiting;
+        state.jobs.push(job);
+        state.strip_fixtures();
+        assert_eq!(state.hosts.len(), 1);
+        assert_eq!(state.hosts[0].id, "host-real");
+        assert_eq!(state.jobs.len(), 1);
+        assert_eq!(state.jobs[0].id, "job-real");
+        assert_eq!(state.selected_host_id, "host-real");
     }
 }

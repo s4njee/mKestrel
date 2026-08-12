@@ -1,6 +1,7 @@
 //! Real transfer workers (E7-S1): stream bytes between a `VfsBackend` (remote)
 //! and the local filesystem, paced by a shared token-bucket bandwidth limiter.
 
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -59,14 +60,32 @@ impl BandwidthLimiter {
     }
 }
 
-/// Map the UI's mock-style `/Downloads/<name>` to the real home Downloads dir.
-fn resolve_local(local_path: &str) -> String {
-    if let Some(rest) = local_path.strip_prefix("/Downloads/") {
+/// Directory that GET/PUT can actually write on this platform.
+///
+/// The UI uses the mockup path `/Downloads/<name>`. On desktop that maps to
+/// `$HOME/Downloads`. On Android it is the public Downloads folder the
+/// system Files app shows (`/storage/emulated/0/Download`).
+fn downloads_dir() -> PathBuf {
+    #[cfg(target_os = "android")]
+    {
+        crate::android::public_downloads_dir()
+    }
+    #[cfg(not(target_os = "android"))]
+    {
         if let Ok(home) = std::env::var("HOME") {
-            return format!("{home}/Downloads/{rest}");
+            PathBuf::from(home).join("Downloads")
+        } else {
+            PathBuf::from("/Downloads")
         }
     }
-    local_path.to_string()
+}
+
+/// Map the UI's mock-style `/Downloads/<name>` to a writable local path.
+fn resolve_local(local_path: &str) -> String {
+    let name = local_path
+        .strip_prefix("/Downloads/")
+        .unwrap_or_else(|| local_path.rsplit('/').next().unwrap_or(local_path));
+    downloads_dir().join(name).to_string_lossy().into_owned()
 }
 
 /// Remote -> local stream copy.
@@ -81,16 +100,32 @@ pub async fn download(
     progress: tokio::sync::mpsc::UnboundedSender<TransferProgress>,
 ) -> Result<(), String> {
     let resolved = resolve_local(local_path);
-    if let Some(parent) = std::path::Path::new(&resolved).parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    log::info!("download {remote_path} -> {resolved} (chunk={chunk_bytes})");
+    if let Some(parent) = Path::new(&resolved).parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            format!("create {}: {e}", parent.display())
+        })?;
     }
     let mut reader = backend
         .open_read(remote_path)
         .await
-        .map_err(|e| e.to_string())?;
-    let mut file = tokio::fs::File::create(&resolved)
-        .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("open_read {remote_path}: {e}"))?;
+    let mut file = match tokio::fs::File::create(&resolved).await {
+        Ok(f) => f,
+        Err(e) => {
+            #[cfg(target_os = "android")]
+            {
+                crate::android::ensure_public_downloads();
+                return Err(format!(
+                    "create {resolved}: {e} — allow All files access so GET can write to Downloads"
+                ));
+            }
+            #[cfg(not(target_os = "android"))]
+            {
+                return Err(format!("create {resolved}: {e}"));
+            }
+        }
+    };
 
     let mut buf = vec![0u8; chunk_bytes.max(1) as usize];
     let mut done: u64 = 0;
@@ -98,16 +133,24 @@ pub async fn download(
         if cancel.load(Ordering::Relaxed) {
             return Err("cancelled".into());
         }
-        let n = reader.read(&mut buf).await.map_err(|e| e.to_string())?;
+        let n = reader
+            .read(&mut buf)
+            .await
+            .map_err(|e| format!("read {remote_path} @ {done}: {e}"))?;
         if n == 0 {
             break;
         }
         limiter.wait_for(n).await;
-        file.write_all(&buf[..n]).await.map_err(|e| e.to_string())?;
+        file.write_all(&buf[..n])
+            .await
+            .map_err(|e| format!("write {resolved}: {e}"))?;
         done += n as u64;
         let _ = progress.send(TransferProgress { bytes_done: done });
     }
-    file.flush().await.map_err(|e| e.to_string())?;
+    file.flush().await.map_err(|e| format!("flush {resolved}: {e}"))?;
+    #[cfg(target_os = "android")]
+    crate::android::scan_file(Path::new(&resolved));
+    log::info!("download done {remote_path} ({done} bytes) -> {resolved}");
 
     if verify {
         let _ = sha256_file(resolved).await?;
@@ -126,13 +169,14 @@ pub async fn upload(
     progress: tokio::sync::mpsc::UnboundedSender<TransferProgress>,
 ) -> Result<(), String> {
     let resolved = resolve_local(local_path);
+    log::info!("upload {resolved} -> {remote_path} (chunk={chunk_bytes})");
     let mut reader = tokio::fs::File::open(&resolved)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("open {resolved}: {e}"))?;
     let mut writer = backend
         .open_write(remote_path)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("open_write {remote_path}: {e}"))?;
 
     let mut buf = vec![0u8; chunk_bytes.max(1) as usize];
     let mut done: u64 = 0;
@@ -171,4 +215,19 @@ async fn sha256_file(path: String) -> Result<String, String> {
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resolve_local_maps_downloads_prefix() {
+        let got = resolve_local("/Downloads/report.pdf");
+        assert!(
+            got.ends_with("Downloads/report.pdf") || got.ends_with("Downloads\\report.pdf"),
+            "unexpected path {got}"
+        );
+        assert!(!got.starts_with("/Downloads/"), "must not write to /Downloads on a real device");
+    }
 }

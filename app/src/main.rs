@@ -16,6 +16,8 @@ use mk_core::host::{AuthMethod, Entry};
 use mk_ui::backend::{ProbeLine, TransferProgress};
 use mk_ui::{FsBackend, Root};
 
+#[cfg(target_os = "android")]
+mod android;
 mod transfer;
 
 /// The single design-system stylesheet, injected once at the root.
@@ -361,38 +363,94 @@ fn launch() {
     dioxus::LaunchBuilder::new().launch(App)
 }
 
+/// Writable store path. On Android cwd is `/` and relative paths aren't
+/// writable, so we pin the file under the app-private files dir.
+fn default_store_path() -> String {
+    #[cfg(target_os = "android")]
+    {
+        let pkg = std::fs::read_to_string("/proc/self/cmdline")
+            .ok()
+            .map(|s| s.trim_matches('\0').to_string())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "com.mkestral.app".into());
+        return format!("/data/user/0/{pkg}/files/mkestral-store.json");
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        "mkestral-store.json".to_string()
+    }
+}
+
+/// Android NativeActivity does not set Unix argc/argv. `std::env::args()`
+/// then allocates `Vec` with a garbage capacity and panics ("capacity
+/// overflow"), which is the white screen after `am start`.
+fn has_flag(flag: &str) -> bool {
+    #[cfg(target_os = "android")]
+    {
+        let _ = flag;
+        false
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        std::env::args().any(|a| a == flag)
+    }
+}
+
 /// Parse `--store <path>` (and honor `--reset-store`). Defaults to
 /// `mkestral-store.json` so `--reset-store` alone still resets the real store.
 fn store_path_arg() -> Option<String> {
-    let mut args = std::env::args();
-    let mut path = None;
-    let mut reset = false;
-    while let Some(a) = args.next() {
-        if a == "--store" {
-            path = args.next();
-        } else if a == "--reset-store" {
-            reset = true;
-        }
+    #[cfg(target_os = "android")]
+    {
+        return Some(default_store_path());
     }
-    let resolved = path.or_else(|| Some("mkestral-store.json".to_string()));
-    if reset {
-        if let Some(p) = &resolved {
-            let _ = std::fs::remove_file(p);
+    #[cfg(not(target_os = "android"))]
+    {
+        let mut args = std::env::args();
+        let mut path = None;
+        let mut reset = false;
+        while let Some(a) = args.next() {
+            if a == "--store" {
+                path = args.next();
+            } else if a == "--reset-store" {
+                reset = true;
+            }
         }
+        let resolved = path.or_else(|| Some(default_store_path()));
+        if reset {
+            if let Some(p) = &resolved {
+                let _ = std::fs::remove_file(p);
+            }
+        }
+        resolved
     }
-    resolved
 }
 
 fn main() {
-    let demo = std::env::args().any(|a| a == "--demo");
+    #[cfg(target_os = "android")]
+    {
+        android_logger::init_once(
+            android_logger::Config::default()
+                .with_max_level(log::LevelFilter::Debug)
+                .with_tag("mkestral"),
+        );
+        std::panic::set_hook(Box::new(|info| {
+            let bt = std::backtrace::Backtrace::force_capture();
+            log::error!("panic: {info}\n{bt}");
+            eprintln!("panic: {info}\n{bt}");
+        }));
+        log::info!("mkestral starting (android debug)");
+        android::ensure_public_downloads();
+    }
+
+    let demo = has_flag("--demo");
     let _ = DEMO.set(demo);
     let store_path = if demo { None } else { store_path_arg() };
-    let _ = GALLERY.set(std::env::args().any(|a| a == "--gallery"));
-    let _ = QUEUE_START.set(std::env::args().any(|a| a == "--queue"));
-    let _ = HOST_DIALOG.set(std::env::args().any(|a| a == "--host"));
-    let _ = SETTINGS.set(std::env::args().any(|a| a == "--settings"));
-    let _ = OFFLINE.set(std::env::args().any(|a| a == "--offline"));
-    let _ = DEV.set(std::env::args().any(|a| a == "--dev"));
+    let _ = GALLERY.set(has_flag("--gallery"));
+    let _ = QUEUE_START.set(has_flag("--queue"));
+    let _ = HOST_DIALOG.set(has_flag("--host"));
+    let _ = SETTINGS.set(has_flag("--settings"));
+    let _ = OFFLINE.set(has_flag("--offline"));
+    let _ = DEV.set(has_flag("--dev"));
     let _ = STORE_PATH.set(store_path);
     launch();
 }

@@ -309,6 +309,10 @@ pub fn StoreProvider(children: Element, initial: Screen, store_path: Option<Stri
         .as_ref()
         .and_then(|p| mk_core::persistence::load(std::path::Path::new(p)).ok())
         .unwrap_or_else(seed_state);
+    // Device builds persist the desktop demo seed. Fixture jobs (BladeRunner
+    // etc.) then occupy every parallel slot, so real GETs sit Waiting.
+    #[cfg(target_os = "android")]
+    seeded.strip_fixtures();
     seeded.sanitize_jobs();
     let demo = seeded;
     let selected_init = demo.selected_host_id;
@@ -380,11 +384,16 @@ fn rate_history_init() -> Vec<f64> {
     Vec::new()
 }
 
-/// Seed the store: debug builds get the fixture demo; release builds get the
-/// real hosts only (fixtures are compiled out of release).
-#[cfg(debug_assertions)]
+/// Seed the store: desktop debug gets the fixture demo; Android and release
+/// start empty so real hosts aren't queued behind fake BladeRunner jobs.
+#[cfg(all(debug_assertions, not(target_os = "android")))]
 fn seed_state() -> mk_core::persistence::StoredState {
     mk_core::persistence::StoredState::from_demo()
+}
+
+#[cfg(all(debug_assertions, target_os = "android"))]
+fn seed_state() -> mk_core::persistence::StoredState {
+    mk_core::persistence::StoredState::real_only()
 }
 
 #[cfg(not(debug_assertions))]

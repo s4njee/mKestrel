@@ -38,7 +38,7 @@ impl NfsBackend {
     pub fn for_export(address: &str, path: &str) -> Self {
         let root = path.trim_end_matches('/').to_string();
         Self {
-            url: format!("nfs://{address}{path}?version=3"),
+            url: format!("nfs://{address}{path}?version=3&rsize=32768&wsize=32768"),
             root,
             mount: Arc::new(Mutex::new(None)),
         }
@@ -50,7 +50,9 @@ impl NfsBackend {
     pub fn for_mobile_export(address: &str, path: &str) -> Self {
         let root = path.trim_end_matches('/').to_string();
         Self {
-            url: format!("nfs://{address}{path}?version=3&noresvport=true"),
+            url: format!(
+                "nfs://{address}{path}?version=3&noresvport=true&rsize=32768&wsize=32768"
+            ),
             root,
             mount: Arc::new(Mutex::new(None)),
         }
@@ -293,19 +295,24 @@ struct NfsReader {
     pos: u64,
 }
 
+/// Cap a single READ below typical NFSv3 `rtmax` (32–64 KiB). Requesting the
+/// UI's 1 MiB chunk as one RPC can hang against some servers (no progress).
+const NFS_READ_CHUNK: usize = 32 * 1024;
+
 #[async_trait]
 impl ReadStream for NfsReader {
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, VfsError> {
-        let guard = self.mount.lock().await;
-        let mount = guard.as_ref().ok_or_else(|| {
-            VfsError::new(VfsErrorKind::Unreachable, "not mounted").with_path(&self.path)
-        })?;
+        // Clone the mount handle so we don't hold the mutex across the RPC —
+        // a 1 MiB transfer would otherwise stall listing/statfs.
+        let mount = {
+            let guard = self.mount.lock().await;
+            guard.as_ref().cloned().ok_or_else(|| {
+                VfsError::new(VfsErrorKind::Unreachable, "not mounted").with_path(&self.path)
+            })?
+        };
+        let want = buf.len().min(NFS_READ_CHUNK).min(u32::MAX as usize) as u32;
         let data = mount
-            .read_path(
-                &self.path,
-                self.pos,
-                buf.len().min(u32::MAX as usize) as u32,
-            )
+            .read_path(&self.path, self.pos, want)
             .await
             .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")).with_path(&self.path))?;
         let n = data.len();
@@ -327,12 +334,15 @@ struct NfsWriter {
 #[async_trait]
 impl WriteStream for NfsWriter {
     async fn write(&mut self, buf: &[u8]) -> Result<usize, VfsError> {
-        let guard = self.mount.lock().await;
-        let mount = guard.as_ref().ok_or_else(|| {
-            VfsError::new(VfsErrorKind::Unreachable, "not mounted").with_path(&self.path)
-        })?;
+        let mount = {
+            let guard = self.mount.lock().await;
+            guard.as_ref().cloned().ok_or_else(|| {
+                VfsError::new(VfsErrorKind::Unreachable, "not mounted").with_path(&self.path)
+            })?
+        };
+        let chunk = buf.len().min(NFS_READ_CHUNK);
         let n = mount
-            .write_path(&self.path, self.pos, buf.to_vec().into())
+            .write_path(&self.path, self.pos, buf[..chunk].to_vec().into())
             .await
             .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")).with_path(&self.path))?;
         self.pos += n as u64;

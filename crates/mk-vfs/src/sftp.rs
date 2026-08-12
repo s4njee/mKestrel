@@ -108,13 +108,20 @@ impl SftpBackend {
                         .unwrap_or_default(),
                     _ => String::new(),
                 };
-                session
+                let auth = session
                     .authenticate_password(&host.user, &password)
                     .await
                     .map_err(|e| {
                         VfsError::new(VfsErrorKind::PermissionDenied, e.to_string())
                             .with_path(&host.address)
                     })?;
+                if !auth.success() {
+                    return Err(VfsError::new(
+                        VfsErrorKind::PermissionDenied,
+                        "password authentication rejected",
+                    )
+                    .with_path(&host.address));
+                }
             }
             SftpAuth::Key { path } => {
                 let key = load_secret_key(path, None).map_err(|e| {
@@ -122,13 +129,20 @@ impl SftpBackend {
                         .with_path(path.display().to_string())
                 })?;
                 let key = russh::keys::PrivateKeyWithHashAlg::new(Arc::new(key), None);
-                session
+                let auth = session
                     .authenticate_publickey(&host.user, key)
                     .await
                     .map_err(|e| {
                         VfsError::new(VfsErrorKind::PermissionDenied, e.to_string())
                             .with_path(&host.address)
                     })?;
+                if !auth.success() {
+                    return Err(VfsError::new(
+                        VfsErrorKind::PermissionDenied,
+                        format!("key authentication rejected ({})", path.display()),
+                    )
+                    .with_path(&host.address));
+                }
             }
         }
 
@@ -143,6 +157,9 @@ impl SftpBackend {
             .map_err(|e| {
                 VfsError::new(VfsErrorKind::Protocol, e.to_string()).with_path(&host.address)
             })?;
+        // Default is 10s — a first READ on a spinning disk / WAN link can
+        // exceed that and fail the whole GET.
+        sftp_session.set_timeout(120);
 
         *guard = Some(SftpConnection {
             _handle: session,

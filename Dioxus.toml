@@ -9,3 +9,18 @@ identifier = "com.mkestral.app"
 
 [ios]
 identifier = "com.mkestral.app"
+
+# Public Downloads (`/storage/emulated/0/Download`) so GET lands in the
+# system Files app. Android 11+ needs All files access; older APIs use
+# WRITE_EXTERNAL_STORAGE.
+[android.permissions."android.permission.MANAGE_EXTERNAL_STORAGE"]
+description = "Save transferred files to Downloads"
+
+[android.permissions."android.permission.WRITE_EXTERNAL_STORAGE"]
+description = "Save transferred files to Downloads"
+
+[android.permissions."android.permission.READ_EXTERNAL_STORAGE"]
+description = "Read transferred files"
+
+[android.raw]
+application_attrs = 'android:requestLegacyExternalStorage="true"'
