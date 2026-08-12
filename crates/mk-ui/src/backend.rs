@@ -5,8 +5,28 @@
 //! bridging to `mk_vfs::VfsBackend` — so swapping the mock for a real backend
 //! needs no UI change.
 
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use mk_core::host::{Entry, Host};
+
+/// One progress update from a running transfer worker: total bytes moved so
+/// far. Emitted after each chunk and coalesced by the engine (E7-S1).
+#[derive(Debug, Clone, Copy)]
+pub struct TransferProgress {
+    pub bytes_done: u64,
+}
+
+/// One line in a connect-time probe report (E8-S3), with a severity for the
+/// host dialog's PROBE box.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ProbeLine {
+    Info(String),
+    Warn(String),
+    Error(String),
+    Accent(String),
+}
 
 #[async_trait]
 pub trait FsBackend: Send + Sync + std::fmt::Debug {
@@ -17,6 +37,33 @@ pub trait FsBackend: Send + Sync + std::fmt::Debug {
     async fn rename(&self, host: &Host, from: &str, to: &str) -> Result<(), String>;
     async fn chmod(&self, host: &Host, path: &str, mode: u32) -> Result<(), String>;
     async fn remove(&self, host: &Host, path: &str) -> Result<(), String>;
+    /// Remote -> local (`get ↓`): stream `remote_path` into `local_path`,
+    /// sending `progress.bytes_done` after each chunk. `verify` hashes the
+    /// result on completion.
+    async fn download(
+        &self,
+        host: &Host,
+        remote_path: &str,
+        local_path: &str,
+        chunk_bytes: u64,
+        verify: bool,
+        cancel: Arc<AtomicBool>,
+        progress: tokio::sync::mpsc::UnboundedSender<TransferProgress>,
+    ) -> Result<(), String>;
+    /// Local -> remote (`put ↑`): stream `local_path` into `remote_path`.
+    async fn upload(
+        &self,
+        host: &Host,
+        remote_path: &str,
+        local_path: &str,
+        chunk_bytes: u64,
+        cancel: Arc<AtomicBool>,
+        progress: tokio::sync::mpsc::UnboundedSender<TransferProgress>,
+    ) -> Result<(), String>;
+    /// Connect-time probe: one [`ProbeLine`] per step (resolve/tcp/auth).
+    async fn probe(&self, host: &Host) -> Result<Vec<ProbeLine>, String>;
+    /// Free and total bytes on the host's filesystem (`statfs`).
+    async fn statfs(&self, host: &Host, path: &str) -> Result<(u64, u64), String>;
 }
 
 /// Fallback backend so the UI can render standalone (empty listings).
@@ -39,6 +86,35 @@ impl FsBackend for EmptyBackend {
     }
     async fn remove(&self, _host: &Host, _path: &str) -> Result<(), String> {
         Ok(())
+    }
+    async fn download(
+        &self,
+        _host: &Host,
+        _remote_path: &str,
+        _local_path: &str,
+        _chunk_bytes: u64,
+        _verify: bool,
+        _cancel: Arc<AtomicBool>,
+        _progress: tokio::sync::mpsc::UnboundedSender<TransferProgress>,
+    ) -> Result<(), String> {
+        Err("transfer backend not connected".into())
+    }
+    async fn upload(
+        &self,
+        _host: &Host,
+        _remote_path: &str,
+        _local_path: &str,
+        _chunk_bytes: u64,
+        _cancel: Arc<AtomicBool>,
+        _progress: tokio::sync::mpsc::UnboundedSender<TransferProgress>,
+    ) -> Result<(), String> {
+        Err("transfer backend not connected".into())
+    }
+    async fn probe(&self, _host: &Host) -> Result<Vec<ProbeLine>, String> {
+        Err("transfer backend not connected".into())
+    }
+    async fn statfs(&self, _host: &Host, _path: &str) -> Result<(u64, u64), String> {
+        Err("transfer backend not connected".into())
     }
 }
 

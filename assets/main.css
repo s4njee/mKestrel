@@ -907,6 +907,25 @@ body {
   font-weight: 500;
 }
 
+/* Directory chevron (E5-S5): single-tap navigation affordance, since
+   double-tap can be swallowed by the select-on-first-tap re-render. */
+.row-chevron {
+  margin-left: 10px;
+  color: var(--text-35);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.row-chevron:hover {
+  color: var(--text-70);
+}
+
+.row.selected .row-chevron {
+  color: var(--accent);
+}
+
 .symlink-target {
   color: var(--text-40);
 }

@@ -1,8 +1,6 @@
 //! Shared modal dialogs: E5-S6 file ops, E7-S2 bandwidth limit, and the E8
 //! new/edit host dialog (`2c`). Rendered once at the screen root.
 
-use std::time::Duration;
-
 use dioxus::prelude::*;
 
 use mk_core::fmt::format_mode_full;
@@ -10,7 +8,9 @@ use mk_core::host::{AuthMethod, EntryKind, Protocol};
 
 use crate::components::*;
 use crate::mock;
-use crate::store::{default_port, use_store, Dialog, HostDraft, ProbeLine, ProbeState, Store};
+use crate::store::{
+    default_port, host_from_draft, use_store, Dialog, HostDraft, ProbeLine, ProbeState, Store,
+};
 
 #[component]
 pub fn DialogOverlay() -> Element {
@@ -419,6 +419,9 @@ fn cycle_key(store: Store, current: &str) {
         .iter()
         .map(|k| k.id.clone())
         .collect();
+    if ids.is_empty() {
+        return;
+    }
     let idx = ids.iter().position(|i| i == current).unwrap_or(0);
     let next = ids[(idx + 1) % ids.len()].clone();
     patch_draft(store, move |d| d.key_id = next);
@@ -436,35 +439,41 @@ fn ssh_import(store: Store) {
     });
 }
 
-/// Mock probe: append one line per step (E8-S3), then mark success.
+/// Run a real connect-time probe against the injected backend (E8-S3).
 fn start_probe(store: Store) {
+    let draft = match store.dialog.read().clone() {
+        Some(Dialog::NewHost(d)) => d,
+        _ => return,
+    };
     patch_draft(store, |d| {
         d.probe_log.clear();
         d.probe_state = ProbeState::Testing;
         d.key_trusted = false;
         d.error = None;
     });
-    let address = match store.dialog.read().as_ref() {
-        Some(Dialog::NewHost(d)) => d.address.clone(),
-        _ => return,
-    };
-    let sequence = vec![
-        ProbeLine::Info(format!("resolve {address} → 192.0.2.10")),
-        ProbeLine::Info("tcp 22 open · 24 ms".into()),
-        ProbeLine::Info("banner: SSH-2.0-OpenSSH_9.6".into()),
-        ProbeLine::Warn("host key not in known_hosts".into()),
-        ProbeLine::Info("ed25519 fingerprint SHA256:v8Kx7dR…q2Lp".into()),
-        ProbeLine::Accent(format!("auth accepted · {address} readable")),
-    ];
+    let host = host_from_draft(&draft);
+    // A password-auth host authenticates from the shared vault; stash the
+    // draft password so the probe can connect before the host is saved.
+    if draft.auth == AuthMethod::Password && !draft.password.is_empty() {
+        let mut s = store;
+        s.set_password(&host.id, draft.password.clone());
+    }
+    let backend = store.backend.read().clone();
     let s = store;
     spawn(async move {
-        for line in sequence {
-            tokio::time::sleep(Duration::from_millis(260)).await;
-            let mut s2 = s;
-            s2.append_probe(line);
+        let mut s = s;
+        match backend.probe(&host).await {
+            Ok(lines) => {
+                for line in lines {
+                    s.append_probe(line);
+                }
+                s.set_probe_state(ProbeState::Success);
+            }
+            Err(message) => {
+                s.append_probe(ProbeLine::Error(message));
+                s.set_probe_state(ProbeState::Failed);
+            }
         }
-        let mut s2 = s;
-        s2.set_probe_state(ProbeState::Success);
     });
 }
 

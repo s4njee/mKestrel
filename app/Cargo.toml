@@ -16,6 +16,8 @@ mk-vfs.workspace = true
 mk-ui.workspace = true
 async-trait = "0.1"
 dioxus = { workspace = true, features = ["default", "desktop"] }
+tokio = { version = "1", features = ["fs", "io-util", "sync", "time", "rt"] }
+sha2 = "0.10"
 
 [features]
 default = ["desktop"]

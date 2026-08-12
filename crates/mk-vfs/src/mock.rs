@@ -103,7 +103,7 @@ impl VfsBackend for MockBackend {
         let entry = self.stat(path).await?;
         let size = entry.size_bytes;
         let start = (offset as usize).min(size as usize);
-        let end = ((offset + len) as usize).min(size as usize);
+        let end = (offset.saturating_add(len) as usize).min(size as usize);
         // Fixtures don't carry content; return a deterministic pseudo-buffer.
         Ok((start..end).map(|i| (i % 251) as u8).collect())
     }

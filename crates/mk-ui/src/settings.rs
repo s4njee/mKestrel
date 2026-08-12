@@ -442,7 +442,7 @@ fn KnownHostRow(host: mk_core::credentials::KnownHost) -> Element {
                     }
                 }
             } else {
-                span { class: "kcol-verified", "verified {format_ago((mk_core::fixtures::now() - host.verified_at_secs) as u64)}" }
+                span { class: "kcol-verified", "verified {format_ago(mk_core::fixtures::now().saturating_sub(host.verified_at_secs) as u64)}" }
             }
         }
     }

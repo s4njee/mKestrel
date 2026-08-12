@@ -30,7 +30,10 @@ pub fn plan_tick(
         .filter(|j| j.state == JobState::Running)
         .map(|j| j.rate_bytes_per_s)
         .sum();
-    let scale = if running_total > bandwidth_limit_bps && running_total > 0.0 {
+    let scale = if bandwidth_limit_bps > 0.0
+        && running_total > bandwidth_limit_bps
+        && running_total > 0.0
+    {
         bandwidth_limit_bps / running_total
     } else {
         1.0
@@ -67,7 +70,9 @@ pub fn plan_tick(
 
 /// Exponential backoff before the next auto-retry: `5 · 2^attempt` seconds.
 pub fn backoff(attempt: u32) -> u64 {
-    5 * 2u64.pow(attempt)
+    // Saturate so an extreme attempt counter can't overflow u64 (debug panic)
+    // or wrap to 0 and busy-loop the retry.
+    5u64.saturating_mul(2u64.saturating_pow(attempt))
 }
 
 #[cfg(test)]

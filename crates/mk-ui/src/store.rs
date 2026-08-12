@@ -4,6 +4,7 @@
 //! network (the real `VfsBackend` arrives in E4).
 
 use std::collections::{BTreeSet, HashMap};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -15,8 +16,12 @@ use mk_core::host::{AuthMethod, Entry, EntryKind, Host, HostOptions, HostStatus,
 use mk_core::job::{Direction, Job, JobState};
 use mk_core::settings::{Settings, SortDir, SortKey, SortSpec};
 
-use crate::backend::{EmptyBackend, FsBackend, PasswordVault};
+use crate::backend::{EmptyBackend, FsBackend, PasswordVault, TransferProgress};
 use crate::mock;
+use tokio::sync::mpsc::{error::TryRecvError, UnboundedReceiver};
+
+/// Monotonic counter for user-enqueued job ids (fixtures use fixed ids).
+static JOB_SEQ: AtomicU64 = AtomicU64::new(0);
 
 /// Top-level screen (E2-S1 routing is a later epic; this is the switcher).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -60,14 +65,9 @@ pub enum Listing {
     Loaded(Vec<Entry>),
 }
 
-/// One line in the probe log (`2c` PROBE box).
-#[derive(Debug, Clone, PartialEq)]
-pub enum ProbeLine {
-    Info(String),
-    Warn(String),
-    Error(String),
-    Accent(String),
-}
+/// One line in the probe log (`2c` PROBE box). Defined on the backend
+/// abstraction; re-exported here for the dialog/store.
+pub use crate::backend::ProbeLine;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ProbeState {
@@ -159,6 +159,41 @@ impl Default for HostDraft {
     }
 }
 
+/// Build a [`Host`] from the host dialog's draft. Validation is the caller's
+/// job; this is lenient (invalid port -> 22) so a probe can run mid-edit.
+pub fn host_from_draft(draft: &HostDraft) -> Host {
+    let name = draft.name.trim().to_string();
+    let address = draft.address.trim().to_string();
+    let port = if draft.protocol == Protocol::File {
+        0
+    } else {
+        draft.port.trim().parse::<u16>().unwrap_or(22)
+    };
+    let id = draft
+        .editing_id
+        .clone()
+        .unwrap_or_else(|| format!("host-{}", name.to_lowercase().replace(' ', "-")));
+    Host {
+        id,
+        name,
+        group: draft.group.trim().to_string(),
+        protocol: draft.protocol,
+        address,
+        port,
+        user: draft.user.trim().to_string(),
+        auth: draft.auth,
+        key_id: (draft.auth == AuthMethod::Key).then(|| draft.key_id.clone()),
+        is_real: true,
+        initial_path: draft.initial_path.trim().to_string(),
+        options: draft.options.clone(),
+        status: HostStatus::Idle,
+        free_bytes: None,
+        rtt_ms: None,
+        mounted_at: None,
+        retrans: 0,
+    }
+}
+
 /// Default port for a protocol (used when switching protocol chips).
 pub fn default_port(protocol: Protocol) -> u16 {
     match protocol {
@@ -246,6 +281,9 @@ pub struct Store {
     pub backend: Signal<Arc<dyn FsBackend>>,
     /// Shared host-password store supplied by the app (E4-S6).
     pub vault: Signal<PasswordVault>,
+    /// Shared bandwidth cap (bytes/s), supplied by the app; written here so the
+    /// LIMIT setting applies live to the transfer engine (E7-S1).
+    pub cap: Signal<Arc<AtomicU64>>,
     /// Lazy inspector metadata (E6-S2), keyed to the focused entry.
     pub inspector_codec: Signal<Option<String>>,
     pub inspector_sha256: Signal<Option<String>>,
@@ -263,6 +301,8 @@ pub fn StoreProvider(children: Element, initial: Screen, store_path: Option<Stri
     let vault = try_consume_context::<PasswordVault>().unwrap_or_else(|| {
         std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new()))
     });
+    let cap = try_consume_context::<Arc<AtomicU64>>()
+        .unwrap_or_else(|| Arc::new(AtomicU64::new(20 * 1024 * 1024)));
     // Restore persisted state if present (E3-S3); `running` jobs come back
     // `waiting`. `--local` always starts at the device root.
     let mut seeded = store_path
@@ -300,12 +340,13 @@ pub fn StoreProvider(children: Element, initial: Screen, store_path: Option<Stri
         dialog_error: use_signal(|| None),
         backend: use_signal(|| backend),
         vault: use_signal(|| vault),
+        cap: use_signal(|| cap),
         inspector_codec: use_signal(|| None),
         inspector_sha256: use_signal(|| None),
         inspector_thumb: use_signal(|| None),
     };
     use_context_provider(|| store);
-    start_mock_ticker(store);
+    start_transfer_engine(store);
     start_persister(store, store_path);
     // Load the initial directory through the backend after mount; a real
     // password-auth host prompts for its credential before connecting.
@@ -372,12 +413,11 @@ fn start_persister(store: Store, path: Option<String>) {
     });
 }
 
-/// Mock transfer engine (E6-S3 / E7-S1). Advances running jobs once per
-/// second honouring the parallel-transfers limit and the global bandwidth cap,
-/// promotes waiting jobs when slots free, auto-retries failed jobs with
-/// backoff (E7-S4), re-fails persistent-error jobs, and feeds the 60s rate
-/// ring for the throughput panel. Replaced by the real engine in `mk-transfer`.
-fn start_mock_ticker(store: Store) {
+/// Transfer engine (E7-S1): real byte transfers for real hosts, fixture/demo
+/// advancement for mock hosts. A 1s tick promotes waiting jobs up to the
+/// parallel limit, auto-retries failed jobs with backoff (E7-S4), coalesces
+/// worker progress into the job signals, and feeds the 60s rate ring.
+fn start_transfer_engine(store: Store) {
     spawn(async move {
         let mut store = store;
         let mut interval = tokio::time::interval(Duration::from_secs(1));
@@ -385,11 +425,20 @@ fn start_mock_ticker(store: Store) {
 
         let now = Instant::now();
         let mut running_since: HashMap<String, Instant> = HashMap::new();
-        let mut failed_since: HashMap<String, Instant> = HashMap::new();
+        // Shared with workers so a real failed transfer records its failure
+        // time and the retry block can back off from it.
+        let failed_since: Arc<std::sync::Mutex<HashMap<String, Instant>>> =
+            Arc::new(std::sync::Mutex::new(HashMap::new()));
+        // Live real-transfer workers: job id -> progress receiver.
+        let mut workers: HashMap<String, UnboundedReceiver<TransferProgress>> = HashMap::new();
+        // Last-seen byte count per real job, for per-tick rate computation.
+        let mut prev_bytes: HashMap<String, u64> = HashMap::new();
+        // Cancellation flag per real worker; set when its job leaves Running.
+        let mut cancel_flags: HashMap<String, Arc<AtomicBool>> = HashMap::new();
         // Seed so the fixture's already-failed job auto-retries after backoff.
         for job in store.jobs.read().iter() {
             if job.state == JobState::Failed {
-                failed_since.insert(job.id.clone(), now);
+                failed_since.lock().unwrap().insert(job.id.clone(), now);
             }
         }
 
@@ -399,25 +448,72 @@ fn start_mock_ticker(store: Store) {
             let parallel = store.settings.read().transfers.parallel.max(1) as usize;
             let cap = store.settings.read().transfers.bandwidth_limit_bytes as f64;
             let verify = store.settings.read().transfers.verify_sha256;
+            let chunk = store.settings.read().transfers.chunk_bytes.max(1);
+            let offline = *store.offline.read();
+            let hosts = store.hosts.read().clone();
+
+            // Drain real-worker progress, coalesced to this tick.
+            let mut progress: HashMap<String, u64> = HashMap::new();
+            let mut finished: Vec<String> = Vec::new();
+            for (id, rx) in workers.iter_mut() {
+                let mut latest: Option<u64> = None;
+                loop {
+                    match rx.try_recv() {
+                        Ok(p) => latest = Some(p.bytes_done),
+                        Err(TryRecvError::Empty) => break,
+                        Err(TryRecvError::Disconnected) => {
+                            finished.push(id.clone());
+                            break;
+                        }
+                    }
+                }
+                if let Some(b) = latest {
+                    progress.insert(id.clone(), b);
+                }
+            }
+            for id in finished {
+                workers.remove(&id);
+                prev_bytes.remove(&id);
+                cancel_flags.remove(&id);
+            }
 
             let mut aggregate_bps = 0.0_f64;
             {
                 let mut jobs = store.jobs.write();
 
-                // Scale all running rates so the aggregate respects the cap.
-                let total_rate: f64 = jobs
+                // Apply real-worker progress + rate.
+                for job in jobs.iter_mut() {
+                    if job.state != JobState::Running || !host_is_real(&hosts, &job.host_id) {
+                        continue;
+                    }
+                    if let Some(bytes) = progress.get(&job.id) {
+                        let prev = prev_bytes.get(&job.id).copied().unwrap_or(0);
+                        let d = bytes.saturating_sub(prev);
+                        job.bytes_done = job.bytes_done.saturating_add(d);
+                        job.rate_bytes_per_s = d as f64;
+                        aggregate_bps += d as f64;
+                        prev_bytes.insert(job.id.clone(), *bytes);
+                    }
+                    if job.bytes_total > 0 {
+                        let remaining = job.bytes_total.saturating_sub(job.bytes_done);
+                        job.eta_seconds =
+                            Some((remaining as f64 / job.rate_bytes_per_s.max(1.0)) as u64);
+                    }
+                }
+
+                // Demo/fixture advancement for non-real running jobs.
+                let fake_total: f64 = jobs
                     .iter()
-                    .filter(|j| j.state == JobState::Running)
+                    .filter(|j| j.state == JobState::Running && !host_is_real(&hosts, &j.host_id))
                     .map(|j| j.rate_bytes_per_s)
                     .sum();
-                let scale = if total_rate > cap && total_rate > 0.0 {
-                    cap / total_rate
+                let scale = if fake_total > cap && fake_total > 0.0 {
+                    cap / fake_total
                 } else {
                     1.0
                 };
-
                 for job in jobs.iter_mut() {
-                    if job.state != JobState::Running {
+                    if job.state != JobState::Running || host_is_real(&hosts, &job.host_id) {
                         continue;
                     }
                     let rate = job.rate_bytes_per_s * scale;
@@ -433,29 +529,32 @@ fn start_mock_ticker(store: Store) {
                         let remaining = job.bytes_total - job.bytes_done;
                         job.eta_seconds = Some((remaining as f64 / rate.max(1.0)) as u64);
                     }
-                    // Persistent-error jobs (message set) fail again after 2s,
-                    // modelling EACCES-style failures until the attempts run out.
+                    // Persistent-error jobs (message set) fail again after 2s.
                     if job.message.is_some() && job.state == JobState::Running {
                         let started = running_since.entry(job.id.clone()).or_insert(now);
                         if now.duration_since(*started) >= Duration::from_secs(2) {
                             job.state = JobState::Failed;
                             job.attempt += 1;
                             job.finished_at = Some(fixtures::now());
-                            failed_since.insert(job.id.clone(), now);
+                            failed_since.lock().unwrap().insert(job.id.clone(), now);
                             running_since.remove(&job.id);
                         }
                     }
                 }
 
-                // Promote waiting -> running up to the parallel limit.
+                // Promote waiting -> running up to the parallel limit. Offline
+                // holds the queue (E11): don't start new transfers.
                 let running_count = jobs.iter().filter(|j| j.state == JobState::Running).count();
                 let slots = parallel.saturating_sub(running_count);
-                let waiting_ids: Vec<String> = jobs
-                    .iter()
-                    .filter(|j| j.state == JobState::Waiting)
-                    .take(slots)
-                    .map(|j| j.id.clone())
-                    .collect();
+                let waiting_ids: Vec<String> = if offline {
+                    Vec::new()
+                } else {
+                    jobs.iter()
+                        .filter(|j| j.state == JobState::Waiting)
+                        .take(slots)
+                        .map(|j| j.id.clone())
+                        .collect()
+                };
                 for id in waiting_ids {
                     if let Some(j) = jobs.iter_mut().find(|j| j.id == id) {
                         j.state = JobState::Running;
@@ -466,7 +565,12 @@ fn start_mock_ticker(store: Store) {
                 // Auto-retry failed jobs after an exponential backoff.
                 for job in jobs.iter_mut() {
                     if job.state == JobState::Failed && job.attempt < job.max_attempts {
-                        let since = failed_since.get(&job.id).copied().unwrap_or(now);
+                        let since = failed_since
+                            .lock()
+                            .unwrap()
+                            .get(&job.id)
+                            .copied()
+                            .unwrap_or(now);
                         let backoff = Duration::from_secs(5 * 2u64.pow(job.attempt));
                         if now.duration_since(since) >= backoff {
                             job.state = JobState::Waiting;
@@ -474,6 +578,104 @@ fn start_mock_ticker(store: Store) {
                         }
                     }
                 }
+            }
+
+            // Cancel any in-flight worker whose job has left Running (paused,
+            // cancelled, done, failed). ~1s latency, per E7-S1 "one tick".
+            for (id, flag) in cancel_flags.iter() {
+                let running = store
+                    .jobs
+                    .read()
+                    .iter()
+                    .any(|j| j.id == *id && j.state == JobState::Running);
+                flag.store(!running, Ordering::Relaxed);
+            }
+
+            // Spawn a real worker for each real Running job not yet working.
+            let to_spawn: Vec<Job> = store
+                .jobs
+                .read()
+                .iter()
+                .filter(|j| {
+                    j.state == JobState::Running
+                        && host_is_real(&hosts, &j.host_id)
+                        && !workers.contains_key(&j.id)
+                })
+                .cloned()
+                .collect();
+            for job in to_spawn {
+                let backend = store.backend.read().clone();
+                let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+                workers.insert(job.id.clone(), rx);
+                let mut s = store;
+                let tx_up = tx.clone();
+                let tx_down = tx;
+                let failed = failed_since.clone();
+                let cancel = Arc::new(AtomicBool::new(false));
+                cancel_flags.insert(job.id.clone(), cancel.clone());
+                spawn(async move {
+                    let host = s
+                        .hosts
+                        .read()
+                        .iter()
+                        .find(|h| h.id == job.host_id)
+                        .cloned();
+                    let Some(host) = host else { return };
+                    let result = match job.direction {
+                        Direction::Up => {
+                            backend
+                                .download(
+                                    &host,
+                                    &job.remote_path,
+                                    &job.local_path,
+                                    chunk,
+                                    verify,
+                                    cancel.clone(),
+                                    tx_up,
+                                )
+                                .await
+                        }
+                        Direction::Down => {
+                            backend
+                                .upload(
+                                    &host,
+                                    &job.remote_path,
+                                    &job.local_path,
+                                    chunk,
+                                    cancel.clone(),
+                                    tx_down,
+                                )
+                                .await
+                        }
+                    };
+                    // Record a failure timestamp so the engine's retry backoff
+                    // can pick this job up (E7-S4).
+                    if result.is_err() {
+                        failed.lock().unwrap().insert(job.id.clone(), Instant::now());
+                    }
+                    // Finalize only if the job is still running; a cancelled
+                    // (removed) or paused job is left untouched.
+                    let mut jobs = s.jobs.write();
+                    if let Some(j) = jobs
+                        .iter_mut()
+                        .find(|j| j.id == job.id && j.state == JobState::Running)
+                    {
+                        match result {
+                            Ok(()) => {
+                                j.bytes_done = j.bytes_total;
+                                j.state = JobState::Done;
+                                j.finished_at = Some(fixtures::now());
+                                j.verified = Some(verify);
+                            }
+                            Err(msg) => {
+                                j.state = JobState::Failed;
+                                j.attempt += 1;
+                                j.message = Some(msg);
+                                j.finished_at = Some(fixtures::now());
+                            }
+                        }
+                    }
+                });
             }
 
             // Feed the 60s rate ring (E7-S5): shifts left once per second.
@@ -485,6 +687,14 @@ fn start_mock_ticker(store: Store) {
             }
         }
     });
+}
+
+fn host_is_real(hosts: &[Host], id: &str) -> bool {
+    hosts
+        .iter()
+        .find(|h| h.id == id)
+        .map(|h| h.is_real)
+        .unwrap_or(false)
 }
 
 pub fn use_store() -> Store {
@@ -707,7 +917,9 @@ impl Store {
             let mut this = this;
             tokio::time::sleep(Duration::from_millis(180)).await;
             let entries = list_dir(this, &host, &cwd).await;
-            *this.listing.write() = Listing::Loaded(entries);
+            if *this.cwd.read() == cwd {
+                *this.listing.write() = Listing::Loaded(entries);
+            }
         });
     }
 
@@ -719,7 +931,9 @@ impl Store {
         spawn(async move {
             let mut this = this;
             let entries = list_dir(this, &host, &cwd).await;
-            *this.listing.write() = Listing::Loaded(entries);
+            if *this.cwd.read() == cwd {
+                *this.listing.write() = Listing::Loaded(entries);
+            }
         });
     }
 
@@ -763,7 +977,7 @@ impl Store {
         let cwd = self.cwd.read().clone();
         let mut jobs = self.jobs.write();
         jobs.push(Job {
-            id: format!("job-{}", entry.name),
+            id: format!("job-{}-{}", entry.name, JOB_SEQ.fetch_add(1, Ordering::Relaxed)),
             direction,
             name: entry.name.clone(),
             host_id: host,
@@ -931,7 +1145,11 @@ impl Store {
     pub fn resume_job(&mut self, id: &str) {
         if let Some(j) = self.jobs.write().iter_mut().find(|j| j.id == id) {
             if j.state == JobState::Paused {
+                // No resume-from-offset yet: restart the copy from byte 0.
                 j.state = JobState::Running;
+                j.bytes_done = 0;
+                j.rate_bytes_per_s = 0.0;
+                j.eta_seconds = None;
             }
         }
     }
@@ -947,6 +1165,11 @@ impl Store {
             j.state = JobState::Waiting;
             j.attempt = 0;
             j.finished_at = None;
+            j.bytes_done = 0;
+            j.rate_bytes_per_s = 0.0;
+            j.eta_seconds = None;
+            j.message = None;
+            j.errno = None;
         }
     }
 
@@ -1007,8 +1230,10 @@ impl Store {
     }
 
     pub fn set_bandwidth_limit_mbps(&mut self, mbps: u64) {
+        let bytes = mbps.max(1) * 1024 * 1024;
         let mut s = self.settings.write();
-        s.transfers.bandwidth_limit_bytes = mbps.max(1) * 1024 * 1024;
+        s.transfers.bandwidth_limit_bytes = bytes;
+        self.cap.read().store(bytes, Ordering::Relaxed);
     }
 
     pub fn toggle_show_hidden(&mut self) {
@@ -1111,37 +1336,10 @@ impl Store {
         if name.is_empty() || address.is_empty() {
             return Some("name and host are required".to_string());
         }
-        let port = if draft.protocol == Protocol::File {
-            0
-        } else {
-            match draft.port.trim().parse::<u16>() {
-                Ok(p) => p,
-                Err(_) => return Some(format!("EINVAL · {} is not a valid port", draft.port)),
-            }
-        };
-        let id = draft
-            .editing_id
-            .clone()
-            .unwrap_or_else(|| format!("host-{}", name.to_lowercase().replace(' ', "-")));
-        let host = Host {
-            id,
-            name: name.to_string(),
-            group: draft.group.trim().to_string(),
-            protocol: draft.protocol,
-            address: address.to_string(),
-            port,
-            user: draft.user.trim().to_string(),
-            auth: draft.auth,
-            key_id: (draft.auth == AuthMethod::Key).then(|| draft.key_id.clone()),
-            is_real: true,
-            initial_path: draft.initial_path.trim().to_string(),
-            options: draft.options.clone(),
-            status: HostStatus::Idle,
-            free_bytes: None,
-            rtt_ms: None,
-            mounted_at: None,
-            retrans: 0,
-        };
+        if draft.protocol != Protocol::File && draft.port.trim().parse::<u16>().is_err() {
+            return Some(format!("EINVAL · {} is not a valid port", draft.port));
+        }
+        let host = host_from_draft(draft);
         // Store the password (if any) so the backend can authenticate.
         if draft.auth == AuthMethod::Password && !draft.password.is_empty() {
             self.set_password(&host.id, draft.password.clone());
@@ -1360,13 +1558,26 @@ async fn list_dir(this: Store, host: &Host, path: &str) -> Vec<Entry> {
     let backend = this.backend.read().clone();
     match backend.list(host, path).await {
         Ok(entries) => {
-            *this.listing_error.write() = None;
-            this.mark_host_status(HostStatus::Mounted);
+            // Guard: the user may have navigated elsewhere while this list was
+            // in flight; don't apply stale results to the wrong directory.
+            if *this.cwd.read() == path {
+                *this.listing_error.write() = None;
+                this.mark_host_status(&host.id, HostStatus::Mounted);
+                // Populate the FREE column once for real hosts (fixtures carry
+                // a fixed free_bytes and are skipped).
+                if host.is_real && host.free_bytes.is_none() {
+                    if let Ok((free, _)) = backend.statfs(host, path).await {
+                        this.set_host_free(&host.id, free);
+                    }
+                }
+            }
             entries
         }
         Err(message) => {
-            *this.listing_error.write() = Some(message);
-            this.mark_host_status(HostStatus::Unreachable);
+            if *this.cwd.read() == path {
+                *this.listing_error.write() = Some(message);
+                this.mark_host_status(&host.id, HostStatus::Unreachable);
+            }
             Vec::new()
         }
     }
@@ -1374,9 +1585,9 @@ async fn list_dir(this: Store, host: &Host, path: &str) -> Vec<Entry> {
 
 impl Store {
     /// Drive the rail's host status from the last op result (E4-S6); the
-    /// signal updates render within a frame.
-    fn mark_host_status(&mut self, status: HostStatus) {
-        let id = self.selected_host_id.read().clone();
+    /// signal updates render within a frame. `id` is the host the op actually
+    /// ran against, not necessarily the currently-selected one.
+    fn mark_host_status(&mut self, id: &str, status: HostStatus) {
         let mut hosts = self.hosts.write();
         if let Some(h) = hosts.iter_mut().find(|h| h.id == id) {
             if status == HostStatus::Mounted {
@@ -1385,6 +1596,14 @@ impl Store {
             } else if h.status == HostStatus::Mounted {
                 h.status = status;
             }
+        }
+    }
+
+    /// Update a host's FREE column from a live `statfs` read.
+    fn set_host_free(&mut self, id: &str, free: u64) {
+        let mut hosts = self.hosts.write();
+        if let Some(h) = hosts.iter_mut().find(|h| h.id == id) {
+            h.free_bytes = Some(free);
         }
     }
 }

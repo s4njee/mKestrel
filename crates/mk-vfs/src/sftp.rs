@@ -71,12 +71,12 @@ pub struct SftpBackend {
 }
 
 impl SftpBackend {
-    pub fn new(auth: SftpAuth) -> Self {
+    pub fn new(auth: SftpAuth, host: Host) -> Self {
         SftpBackend {
             auth,
             keepalive: Duration::from_secs(30),
             session: tokio::sync::Mutex::new(None),
-            host: tokio::sync::Mutex::new(None),
+            host: tokio::sync::Mutex::new(Some(host)),
         }
     }
 
@@ -237,7 +237,7 @@ impl VfsBackend for SftpBackend {
             .await
             .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")).with_path(path))?;
         let start = (offset as usize).min(data.len());
-        let end = ((offset + len) as usize).min(data.len());
+        let end = (offset.saturating_add(len) as usize).min(data.len());
         Ok(data[start..end].to_vec())
     }
 
@@ -415,9 +415,12 @@ mod tests {
 
     fn backend() -> SftpBackend {
         let home = std::env::var("HOME").unwrap_or_else(|_| "/Users/sanjee".into());
-        SftpBackend::new(SftpAuth::Key {
-            path: PathBuf::from(format!("{home}/.ssh/id_ed25519")),
-        })
+        SftpBackend::new(
+            SftpAuth::Key {
+                path: PathBuf::from(format!("{home}/.ssh/id_ed25519")),
+            },
+            freya_host(),
+        )
     }
 
     #[tokio::test(flavor = "current_thread")]

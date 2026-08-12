@@ -258,6 +258,15 @@ fn HostsRail() -> Element {
                 }
                 span {
                     class: "rail-footer-verb",
+                    onclick: move |_| {
+                        let mut s = store;
+                        let id = s.selected_host_id.read().clone();
+                        s.open_edit_host(&id);
+                    },
+                    "edit"
+                }
+                span {
+                    class: "rail-footer-verb",
                     onclick: move |_| { let mut s = store; s.show_settings(SettingsSection::Keys); },
                     "keys"
                 }
@@ -432,7 +441,7 @@ fn EntryRow(entry: Entry) -> Element {
     let store = use_store();
     let name = entry.name.clone();
     let click_name = name.clone();
-    let open_name = name.clone();
+    let chevron_name = name.clone();
     let is_dir = entry.kind == EntryKind::Dir;
     let selected = store.is_selected(&name);
     let downloading = store.running_down_for(&name);
@@ -480,11 +489,16 @@ fn EntryRow(entry: Entry) -> Element {
     rsx! {
         div {
             class: "{row_class}",
-            onclick: move |_| { let mut s = store; s.select_only(&click_name); },
-            ondoubleclick: move |_| {
-                if is_dir {
-                    let mut s = store;
-                    s.open_dir(&open_name);
+            onclick: move |_| {
+                let mut s = store;
+                // First tap selects (inspector opens); a second tap on the
+                // already-selected directory navigates into it. Selection-based
+                // rather than native `dblclick`, which the re-render between
+                // taps resets.
+                if is_dir && s.is_selected(&click_name) {
+                    s.open_dir(&click_name);
+                } else {
+                    s.select_only(&click_name);
                 }
             },
             div { class: "col-indicator",
@@ -494,7 +508,20 @@ fn EntryRow(entry: Entry) -> Element {
             }
             span { class: "{mode_class}", "{format_mode_octal(entry.mode)}" }
             span { class: "col-name",
-                div { class: "{name_class}", "{name_cell}" }
+                div { class: "{name_class}",
+                    "{name_cell}"
+                    if is_dir {
+                        span {
+                            class: "row-chevron",
+                            onclick: move |ev| {
+                                ev.stop_propagation();
+                                let mut s = store;
+                                s.open_dir(&chevron_name);
+                            },
+                            "›"
+                        }
+                    }
+                }
                 if let Some(job) = &downloading {
                     div {
                         class: "inline-progress",
@@ -585,7 +612,7 @@ fn TableFooter() -> Element {
                     let mut s = store;
                     if let Some(e) = s.selected_entry() {
                         if e.kind == EntryKind::File {
-                            s.enqueue(Direction::Up, &e);
+                            s.enqueue(Direction::Down, &e);
                         }
                     }
                 },
@@ -597,7 +624,7 @@ fn TableFooter() -> Element {
                     let mut s = store;
                     if let Some(e) = s.selected_entry() {
                         if e.kind == EntryKind::File {
-                            s.enqueue(Direction::Down, &e);
+                            s.enqueue(Direction::Up, &e);
                         }
                     }
                 },

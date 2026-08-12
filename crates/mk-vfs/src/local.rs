@@ -18,7 +18,9 @@ pub struct LocalBackend;
 impl LocalBackend {
     fn entry_from(&self, path: &str, name: &str) -> Result<Entry, VfsError> {
         let full = join(path, name);
-        let meta = fs::metadata(&full).map_err(|e| io_err(&full, e))?;
+        // symlink_metadata (not metadata) so a symlink is reported as a
+        // Symlink rather than silently following to its target.
+        let meta = fs::symlink_metadata(&full).map_err(|e| io_err(&full, e))?;
         let kind = if meta.file_type().is_dir() {
             EntryKind::Dir
         } else if meta.file_type().is_symlink() {
@@ -99,7 +101,7 @@ impl VfsBackend for LocalBackend {
     async fn read_range(&self, path: &str, offset: u64, len: u64) -> Result<Vec<u8>, VfsError> {
         let data = fs::read(path).map_err(|e| io_err(path, e))?;
         let start = (offset as usize).min(data.len());
-        let end = ((offset + len) as usize).min(data.len());
+        let end = (offset.saturating_add(len) as usize).min(data.len());
         Ok(data[start..end].to_vec())
     }
 
@@ -127,7 +129,9 @@ impl VfsBackend for LocalBackend {
     }
 
     async fn remove(&self, path: &str) -> Result<(), VfsError> {
-        let meta = fs::metadata(path).map_err(|e| io_err(path, e))?;
+        // symlink_metadata so a symlink-to-dir is unlinked (remove_file), not
+        // rmdir'd (which would fail with ENOTDIR).
+        let meta = fs::symlink_metadata(path).map_err(|e| io_err(path, e))?;
         if meta.is_dir() {
             fs::remove_dir(path).map_err(|e| io_err(path, e))
         } else {

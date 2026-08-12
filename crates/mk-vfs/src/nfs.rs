@@ -77,12 +77,17 @@ impl NfsBackend {
     fn rel(&self, path: &str) -> String {
         let p = path.trim_end_matches('/');
         if p == self.root {
-            String::new()
-        } else if let Some(rest) = p.strip_prefix(&self.root) {
-            rest.trim_start_matches('/').to_string()
-        } else {
-            p.trim_start_matches('/').to_string()
+            return String::new();
         }
+        if let Some(rest) = p.strip_prefix(&self.root) {
+            // Only treat as under the root when the prefix ends at a path
+            // boundary, so a sibling like `/mnt/raid6/ebooks2` isn't mistaken
+            // for `/mnt/raid6/ebooks`.
+            if rest.starts_with('/') {
+                return rest.trim_start_matches('/').to_string();
+            }
+        }
+        p.trim_start_matches('/').to_string()
     }
 
     async fn ensure(&self) -> Result<(), VfsError> {
@@ -189,10 +194,18 @@ impl VfsBackend for NfsBackend {
     }
 
     async fn open_write(&self, path: &str) -> Result<Box<dyn WriteStream>, VfsError> {
-        let _ = self.mount().await?;
+        let mount = self.mount().await?;
+        let rel = self.rel(path);
+        // Truncate the target (matching `File::create` / SFTP `create`) so
+        // overwriting a longer file doesn't leave stale trailing bytes.
+        mount
+            .setattr_path(&rel, false, None, None, None, Some(0), None, None)
+            .await
+            .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")).with_path(path))?;
         Ok(Box::new(NfsWriter {
             mount: self.mount.clone(),
-            path: self.rel(path),
+            path: rel,
+            pos: 0,
         }))
     }
 
@@ -308,6 +321,7 @@ impl ReadStream for NfsReader {
 struct NfsWriter {
     mount: SharedMount,
     path: String,
+    pos: u64,
 }
 
 #[async_trait]
@@ -317,11 +331,12 @@ impl WriteStream for NfsWriter {
         let mount = guard.as_ref().ok_or_else(|| {
             VfsError::new(VfsErrorKind::Unreachable, "not mounted").with_path(&self.path)
         })?;
-        mount
-            .write_path(&self.path, 0, buf.to_vec().into())
+        let n = mount
+            .write_path(&self.path, self.pos, buf.to_vec().into())
             .await
-            .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")).with_path(&self.path))
-            .map(|_| buf.len())
+            .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")).with_path(&self.path))?;
+        self.pos += n as u64;
+        Ok(n as usize)
     }
     async fn finish(&mut self) -> Result<(), VfsError> {
         Ok(())

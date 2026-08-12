@@ -16,7 +16,11 @@ pub fn parent_of(cwd: &str) -> String {
 
 /// Smallest path segment (used as the `..` label's basename).
 pub fn base_name(cwd: &str) -> &str {
-    cwd.trim_end_matches('/').rsplit('/').next().unwrap_or("/")
+    let t = cwd.trim_end_matches('/');
+    if t.is_empty() {
+        return "/";
+    }
+    t.rsplit('/').next().unwrap_or("/")
 }
 
 /// Mock lazily-fetched codec/dimensions for a file (E6-S2). Returns `None`

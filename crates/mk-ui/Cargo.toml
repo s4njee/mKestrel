@@ -9,7 +9,7 @@ license.workspace = true
 mk-core.workspace = true
 dioxus = { workspace = true, features = ["lib"] }
 chrono.workspace = true
-tokio = { version = "1", features = ["time"] }
+tokio = { version = "1", features = ["time", "sync"] }
 async-trait = "0.1"
 
 [dev-dependencies]
