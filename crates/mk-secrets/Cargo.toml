@@ -7,3 +7,9 @@ license.workspace = true
 
 [dependencies]
 mk-core.workspace = true
+thiserror = "2"
+serde = { workspace = true }
+serde_json.workspace = true
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+keyring = { version = "3", features = ["apple-native", "windows-native", "linux-native"] }

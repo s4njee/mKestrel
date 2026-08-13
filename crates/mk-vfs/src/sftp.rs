@@ -4,6 +4,7 @@
 //! store is the E4-S3 trust-flow follow-up (accept for now, fingerprint-logged).
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -11,9 +12,13 @@ use async_trait::async_trait;
 use mk_core::host::{Entry, EntryKind, Host};
 use russh::client::{self, Handle};
 use russh::keys::load_secret_key;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use russh_sftp::protocol::OpenFlags;
+use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
 use crate::error::{VfsError, VfsErrorKind};
+use crate::known_hosts::{
+    encode_changed, encode_revoked, encode_unknown, fingerprint_sha256, KnownHostResult,
+};
 use crate::{ProbeLine, ProbeReport, ReadStream, StatFs, VfsBackend, WriteStream};
 
 /// A shared password store (host id -> password) so the UI can supply or
@@ -21,10 +26,13 @@ use crate::{ProbeLine, ProbeReport, ReadStream, StatFs, VfsBackend, WriteStream}
 pub type Vault = std::sync::Arc<std::sync::Mutex<std::collections::HashMap<String, String>>>;
 
 /// How the SFTP backend authenticates.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum SftpAuth {
-    /// Public-key auth from a private key file (e.g. `~/.ssh/id_ed25519`).
-    Key { path: PathBuf },
+    /// Public-key auth from a private key file resolved via `host.key_id`.
+    Key {
+        path: PathBuf,
+        passphrase: Option<String>,
+    },
     /// Password auth with a fixed password.
     Password { password: String },
     /// Password auth read from a shared vault at each connect attempt, so a
@@ -32,24 +40,89 @@ pub enum SftpAuth {
     VaultPassword { vault: Vault, host_id: String },
 }
 
-#[derive(Debug)]
-struct ClientHandler;
+impl std::fmt::Debug for SftpAuth {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SftpAuth::Key { path, .. } => f.debug_struct("Key").field("path", path).finish(),
+            SftpAuth::Password { .. } => f
+                .debug_struct("Password")
+                .field("password", &"[REDACTED]")
+                .finish(),
+            SftpAuth::VaultPassword { host_id, .. } => f
+                .debug_struct("VaultPassword")
+                .field("host_id", host_id)
+                .finish(),
+        }
+    }
+}
+
+struct ClientHandler {
+    known_hosts: Arc<std::sync::Mutex<crate::known_hosts::KnownHostsStore>>,
+    host: String,
+    port: u16,
+    strict: Arc<AtomicBool>,
+}
 
 impl client::Handler for ClientHandler {
     type Error = russh::Error;
 
     async fn check_server_key(
         &mut self,
-        _server_public_key: &russh::keys::ssh_key::PublicKey,
+        server_public_key: &russh::keys::ssh_key::PublicKey,
     ) -> Result<bool, Self::Error> {
-        // Trust-on-first-use for now; proper known-hosts verification + the
-        // trust sheet land together (E4-S3 follow-up).
-        Ok(true)
+        let fingerprint = fingerprint_sha256(server_public_key);
+        let key_type = server_public_key.algorithm().to_string();
+        let result = self
+            .known_hosts
+            .lock()
+            .unwrap()
+            .check(&self.host, self.port, server_public_key);
+        match result {
+            KnownHostResult::Trusted => Ok(true),
+            KnownHostResult::NewHost { .. } => {
+                if self.strict.load(Ordering::Relaxed) {
+                    Err(std::io::Error::other(encode_unknown(
+                        &self.host,
+                        self.port,
+                        &key_type,
+                        &fingerprint,
+                    ))
+                    .into())
+                } else {
+                    // Classic TOFU only when strict checking is off.
+                    self.known_hosts.lock().unwrap().add(
+                        &self.host,
+                        self.port,
+                        &key_type,
+                        &fingerprint,
+                    );
+                    Ok(true)
+                }
+            }
+            KnownHostResult::Changed { old, new, .. } => {
+                self.known_hosts
+                    .lock()
+                    .unwrap()
+                    .note_changed(&self.host, self.port, &new);
+                Err(std::io::Error::other(encode_changed(
+                    &self.host,
+                    self.port,
+                    &key_type,
+                    &old,
+                    &new,
+                ))
+                .into())
+            }
+            KnownHostResult::Revoked { fingerprint } => Err(std::io::Error::other(
+                encode_revoked(&self.host, self.port, &fingerprint),
+            )
+            .into()),
+        }
     }
 }
 
 struct SftpConnection {
-    _handle: Handle<ClientHandler>,
+    handle: Handle<ClientHandler>,
     session: russh_sftp::client::SftpSession,
 }
 
@@ -68,15 +141,24 @@ pub struct SftpBackend {
     keepalive: Duration,
     session: tokio::sync::Mutex<Option<SftpConnection>>,
     host: tokio::sync::Mutex<Option<Host>>,
+    known_hosts: Arc<std::sync::Mutex<crate::known_hosts::KnownHostsStore>>,
+    strict: Arc<AtomicBool>,
 }
 
 impl SftpBackend {
-    pub fn new(auth: SftpAuth, host: Host) -> Self {
+    pub fn new(
+        auth: SftpAuth,
+        host: Host,
+        known_hosts: Arc<std::sync::Mutex<crate::known_hosts::KnownHostsStore>>,
+        strict: Arc<AtomicBool>,
+    ) -> Self {
         SftpBackend {
             auth,
             keepalive: Duration::from_secs(30),
             session: tokio::sync::Mutex::new(None),
             host: tokio::sync::Mutex::new(Some(host)),
+            known_hosts,
+            strict,
         }
     }
 
@@ -89,12 +171,16 @@ impl SftpBackend {
             keepalive_interval: Some(self.keepalive),
             ..client::Config::default()
         });
+        let handler = ClientHandler {
+            known_hosts: self.known_hosts.clone(),
+            host: host.address.clone(),
+            port: host.port,
+            strict: self.strict.clone(),
+        };
         let mut session =
-            client::connect(config, (host.address.as_str(), host.port), ClientHandler)
+            client::connect(config, (host.address.as_str(), host.port), handler)
                 .await
-                .map_err(|e| {
-                    VfsError::new(VfsErrorKind::Io, e.to_string()).with_path(&host.address)
-                })?;
+                .map_err(|e| map_connect_error(&host.address, e))?;
 
         match &self.auth {
             SftpAuth::Password { .. } | SftpAuth::VaultPassword { .. } => {
@@ -123,8 +209,8 @@ impl SftpBackend {
                     .with_path(&host.address));
                 }
             }
-            SftpAuth::Key { path } => {
-                let key = load_secret_key(path, None).map_err(|e| {
+            SftpAuth::Key { path, passphrase } => {
+                let key = load_secret_key(path, passphrase.as_deref()).map_err(|e| {
                     VfsError::new(VfsErrorKind::PermissionDenied, format!("{e}"))
                         .with_path(path.display().to_string())
                 })?;
@@ -162,7 +248,7 @@ impl SftpBackend {
         sftp_session.set_timeout(120);
 
         *guard = Some(SftpConnection {
-            _handle: session,
+            handle: session,
             session: sftp_session,
         });
         *self.host.lock().await = Some(host.clone());
@@ -179,6 +265,22 @@ impl SftpBackend {
         self.establish(&host).await?;
         Ok(self.session.lock().await)
     }
+}
+
+fn map_connect_error(address: &str, e: russh::Error) -> VfsError {
+    let msg = e.to_string();
+    let kind = if msg.contains("HOSTKEY unknown") {
+        VfsErrorKind::HostKeyUnknown
+    } else if msg.contains("HOSTKEY changed") || msg.contains("HOSTKEY revoked") {
+        VfsErrorKind::HostKeyChanged
+    } else {
+        VfsErrorKind::Io
+    };
+    VfsError::new(kind, msg).with_path(address)
+}
+
+fn shell_single_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\'', "'\\''"))
 }
 
 fn to_entry(name: &str, meta: &russh_sftp::client::fs::Metadata) -> Entry {
@@ -270,13 +372,27 @@ impl VfsBackend for SftpBackend {
     }
 
     async fn open_write(&self, path: &str) -> Result<Box<dyn WriteStream>, VfsError> {
+        self.open_write_at(path, 0).await
+    }
+
+    async fn open_write_at(&self, path: &str, offset: u64) -> Result<Box<dyn WriteStream>, VfsError> {
         let mut guard = self.lock_session(path).await?;
         let conn = guard.as_mut().unwrap();
-        let file = conn
+        let flags = if offset == 0 {
+            OpenFlags::CREATE | OpenFlags::TRUNCATE | OpenFlags::WRITE
+        } else {
+            OpenFlags::CREATE | OpenFlags::WRITE
+        };
+        let mut file = conn
             .session
-            .create(path)
+            .open_with_flags(path, flags)
             .await
             .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")).with_path(path))?;
+        if offset > 0 {
+            file.seek(std::io::SeekFrom::Start(offset))
+                .await
+                .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")).with_path(path))?;
+        }
         Ok(Box::new(SftpWriter { file }))
     }
 
@@ -358,14 +474,57 @@ impl VfsBackend for SftpBackend {
     }
 
     async fn probe(&self, host: &Host) -> Result<ProbeReport, VfsError> {
-        self.establish(host).await?;
-        Ok(ProbeReport {
-            lines: vec![
-                ProbeLine::Info(format!("resolve {} → ok", host.address)),
-                ProbeLine::Info(format!("tcp {} open", host.port)),
-                ProbeLine::Accent(format!("auth accepted · {} readable", host.initial_path)),
-            ],
-        })
+        match self.establish(host).await {
+            Ok(()) => Ok(ProbeReport {
+                lines: vec![
+                    ProbeLine::Info(format!("resolve {} → ok", host.address)),
+                    ProbeLine::Info(format!("tcp {} open", host.port)),
+                    ProbeLine::Accent(format!("auth accepted · {} readable", host.initial_path)),
+                ],
+            }),
+            Err(e) if e.kind == VfsErrorKind::HostKeyUnknown || e.kind == VfsErrorKind::HostKeyChanged => {
+                Err(e)
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    async fn symlink(&self, target: &str, link_path: &str) -> Result<(), VfsError> {
+        let mut guard = self.lock_session(link_path).await?;
+        guard
+            .as_mut()
+            .unwrap()
+            .session
+            .symlink(link_path, target)
+            .await
+            .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")).with_path(link_path))
+    }
+
+    async fn remote_digest(&self, path: &str) -> Result<Option<String>, VfsError> {
+        let mut guard = self.lock_session(path).await?;
+        let conn = guard.as_mut().unwrap();
+        let mut channel = conn
+            .handle
+            .channel_open_session()
+            .await
+            .map_err(|e| VfsError::new(VfsErrorKind::Protocol, e.to_string()).with_path(path))?;
+        let cmd = format!("sha256sum -- {}", shell_single_quote(path));
+        channel
+            .exec(true, cmd)
+            .await
+            .map_err(|e| VfsError::new(VfsErrorKind::Protocol, e.to_string()).with_path(path))?;
+        let mut reader = channel.make_reader();
+        let mut buf = Vec::new();
+        if reader.read_to_end(&mut buf).await.is_err() {
+            return Ok(None);
+        }
+        let text = String::from_utf8_lossy(&buf);
+        let digest = text
+            .split_whitespace()
+            .next()
+            .filter(|s| s.len() == 64 && s.chars().all(|c| c.is_ascii_hexdigit()))
+            .map(|s| s.to_ascii_lowercase());
+        Ok(digest)
     }
 }
 
@@ -378,6 +537,12 @@ impl ReadStream for SftpReader {
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, VfsError> {
         self.file
             .read(buf)
+            .await
+            .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")))
+    }
+    async fn seek(&mut self, pos: u64) -> Result<u64, VfsError> {
+        self.file
+            .seek(std::io::SeekFrom::Start(pos))
             .await
             .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")))
     }
@@ -398,6 +563,12 @@ impl WriteStream for SftpWriter {
     async fn finish(&mut self) -> Result<(), VfsError> {
         self.file
             .flush()
+            .await
+            .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")))
+    }
+    async fn seek(&mut self, pos: u64) -> Result<u64, VfsError> {
+        self.file
+            .seek(std::io::SeekFrom::Start(pos))
             .await
             .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")))
     }
@@ -435,8 +606,11 @@ mod tests {
         SftpBackend::new(
             SftpAuth::Key {
                 path: PathBuf::from(format!("{home}/.ssh/id_ed25519")),
+                passphrase: None,
             },
             freya_host(),
+            Arc::new(std::sync::Mutex::new(crate::known_hosts::KnownHostsStore::new(PathBuf::from("/tmp/known_hosts_test.json")))),
+            Arc::new(AtomicBool::new(false)),
         )
     }
 

@@ -19,6 +19,7 @@ mod mock;
 mod nfs;
 mod pool;
 mod sftp;
+pub mod known_hosts;
 
 pub use error::{VfsError, VfsErrorKind};
 pub use local::LocalBackend;
@@ -27,6 +28,10 @@ pub use mock::MockBackend;
 pub use nfs::NfsBackend;
 pub use pool::{spawn_pool_reaper, ConnectionPool};
 pub use sftp::{SftpAuth, SftpBackend, Vault as SftpVault};
+pub use known_hosts::{
+    encode_changed, encode_revoked, encode_unknown, fingerprint_sha256, KnownHostResult,
+    KnownHostsStore,
+};
 
 use async_trait::async_trait;
 use mk_core::host::{Entry, Host};
@@ -36,6 +41,9 @@ use mk_core::host::{Entry, Host};
 #[async_trait]
 pub trait ReadStream: Send {
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, VfsError>;
+    async fn seek(&mut self, _pos: u64) -> Result<u64, VfsError> {
+        Err(VfsError::new(VfsErrorKind::Other, "read seek not supported"))
+    }
 }
 
 /// Streaming write handle (E7).
@@ -43,6 +51,9 @@ pub trait ReadStream: Send {
 pub trait WriteStream: Send {
     async fn write(&mut self, buf: &[u8]) -> Result<usize, VfsError>;
     async fn finish(&mut self) -> Result<(), VfsError>;
+    async fn seek(&mut self, _pos: u64) -> Result<u64, VfsError> {
+        Err(VfsError::new(VfsErrorKind::Other, "write seek not supported"))
+    }
 }
 
 /// Free/total space reported by `statfs`.
@@ -80,12 +91,37 @@ pub trait VfsBackend: Send + Sync + std::fmt::Debug {
     async fn read_range(&self, path: &str, offset: u64, len: u64) -> Result<Vec<u8>, VfsError>;
     async fn open_read(&self, path: &str) -> Result<Box<dyn ReadStream>, VfsError>;
     async fn open_write(&self, path: &str) -> Result<Box<dyn WriteStream>, VfsError>;
+    /// Open an existing file for write at `offset` (B-5 resume). Default
+    /// falls back to `open_write` when `offset == 0`.
+    async fn open_write_at(&self, path: &str, offset: u64) -> Result<Box<dyn WriteStream>, VfsError> {
+        if offset == 0 {
+            self.open_write(path).await
+        } else {
+            Err(VfsError::new(
+                VfsErrorKind::Other,
+                "write resume not supported",
+            ))
+        }
+    }
 
     async fn mkdir(&self, path: &str) -> Result<(), VfsError>;
     async fn rename(&self, from: &str, to: &str) -> Result<(), VfsError>;
     async fn chmod(&self, path: &str, mode: u32) -> Result<(), VfsError>;
     async fn remove(&self, path: &str) -> Result<(), VfsError>;
+    async fn symlink(&self, _target: &str, _link_path: &str) -> Result<(), VfsError> {
+        Err(VfsError::new(
+            VfsErrorKind::Other,
+            "symlink not supported",
+        ))
+    }
 
     async fn statfs(&self, path: &str) -> Result<StatFs, VfsError>;
     async fn probe(&self, host: &Host) -> Result<ProbeReport, VfsError>;
+
+    /// Server-side digest when the backend can obtain one (SFTP exec).
+    /// `Ok(None)` means "no side channel"; the transfer engine will fall
+    /// back to a full read-back or a size check (B-3).
+    async fn remote_digest(&self, _path: &str) -> Result<Option<String>, VfsError> {
+        Ok(None)
+    }
 }

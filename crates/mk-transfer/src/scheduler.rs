@@ -99,6 +99,7 @@ mod tests {
             message: None,
             finished_at: None,
             verified: None,
+            ..Job::default()
         }
     }
 

@@ -14,9 +14,11 @@ use mk_core::credentials::{Credentials, KeyType, KnownHost, SecretStorage, SshKe
 use mk_core::fixtures;
 use mk_core::host::{AuthMethod, Entry, EntryKind, Host, HostOptions, HostStatus, Protocol};
 use mk_core::job::{Direction, Job, JobState};
-use mk_core::settings::{Settings, SortDir, SortKey, SortSpec};
+use mk_core::settings::{OverwritePolicy, Settings, SortDir, SortKey, SortSpec};
 
-use crate::backend::{EmptyBackend, FsBackend, PasswordVault, TransferProgress};
+use crate::backend::{
+    parse_host_key_error, EmptyBackend, FsBackend, PasswordVault, TransferOpts, TransferProgress,
+};
 use crate::mock;
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedReceiver};
 
@@ -99,6 +101,9 @@ pub struct HostDraft {
     pub probe_state: ProbeState,
     /// True once the unknown host key has been accepted (TRUST & SAVE).
     pub key_trusted: bool,
+    pub pending_fingerprint: Option<String>,
+    pub pending_key_type: Option<String>,
+    pub pending_old_fingerprint: Option<String>,
     pub error: Option<String>,
 }
 
@@ -122,6 +127,9 @@ impl HostDraft {
             probe_log: Vec::new(),
             probe_state: ProbeState::Idle,
             key_trusted: false,
+            pending_fingerprint: None,
+            pending_key_type: None,
+            pending_old_fingerprint: None,
             error: None,
         }
     }
@@ -148,6 +156,9 @@ impl HostDraft {
             probe_log: Vec::new(),
             probe_state: ProbeState::Idle,
             key_trusted: false,
+            pending_fingerprint: None,
+            pending_key_type: None,
+            pending_old_fingerprint: None,
             error: None,
         }
     }
@@ -242,6 +253,31 @@ pub enum Dialog {
         host_id: String,
         password: String,
     },
+    /// Overwrite / conflict policy for a single transfer (B-6).
+    Conflict {
+        direction: Direction,
+        name: String,
+        dest: String,
+        remote_path: String,
+        local_path: String,
+        bytes_total: u64,
+        is_tree: bool,
+        apply_all: bool,
+        choice: OverwritePolicy,
+    },
+    /// Connect-time host-key trust sheet (B-1).
+    TrustHost {
+        host: String,
+        port: u16,
+        key_type: String,
+        fingerprint: String,
+        old: Option<String>,
+        retry_list: bool,
+    },
+    /// Orphaned `.mkpart` files found on launch (B-4).
+    OrphanPartials {
+        paths: Vec<String>,
+    },
 }
 
 /// Everything the UI needs, held as Copy signal handles in context.
@@ -289,6 +325,10 @@ pub struct Store {
     pub inspector_sha256: Signal<Option<String>>,
     /// Mock "decoded frame" CSS when `thumbnails over remote` is on.
     pub inspector_thumb: Signal<Option<String>>,
+    /// Apply-to-all overwrite policy for the current batch (B-6).
+    pub apply_all_policy: Signal<Option<OverwritePolicy>>,
+    /// Live transport copy of `strict host key checking` (B-1).
+    pub strict_host_key: Signal<Arc<AtomicBool>>,
 }
 
 #[component]
@@ -309,6 +349,9 @@ pub fn StoreProvider(children: Element, initial: Screen, store_path: Option<Stri
         .as_ref()
         .and_then(|p| mk_core::persistence::load(std::path::Path::new(p)).ok())
         .unwrap_or_else(seed_state);
+    let strict_flag = seeded.settings.security.strict_host_key_checking;
+    let strict_host_key = try_consume_context::<Arc<AtomicBool>>()
+        .unwrap_or_else(|| Arc::new(AtomicBool::new(strict_flag)));
     // Device builds persist the desktop demo seed. Fixture jobs (BladeRunner
     // etc.) then occupy every parallel slot, so real GETs sit Waiting.
     #[cfg(target_os = "android")]
@@ -348,10 +391,36 @@ pub fn StoreProvider(children: Element, initial: Screen, store_path: Option<Stri
         inspector_codec: use_signal(|| None),
         inspector_sha256: use_signal(|| None),
         inspector_thumb: use_signal(|| None),
+        apply_all_policy: use_signal(|| None),
+        strict_host_key: use_signal(|| strict_host_key),
     };
     use_context_provider(|| store);
     start_transfer_engine(store);
     start_persister(store, store_path);
+    {
+        let downloads = if let Ok(home) = std::env::var("HOME") {
+            std::path::PathBuf::from(home).join("Downloads")
+        } else {
+            std::path::PathBuf::from("/Downloads")
+        };
+        let orphans: Vec<String> = std::fs::read_dir(&downloads)
+            .ok()
+            .into_iter()
+            .flatten()
+            .flatten()
+            .map(|e| e.path())
+            .filter(|p| p.extension().and_then(|s| s.to_str()) == Some("mkpart"))
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect();
+        if !orphans.is_empty() && store.settings.read().transfers.resume_interrupted {
+            let mut s = store;
+            s.offer_orphans(orphans);
+        } else {
+            for p in orphans {
+                let _ = std::fs::remove_file(p);
+            }
+        }
+    }
     // Load the initial directory through the backend after mount; a real
     // password-auth host prompts for its credential before connecting.
     let mount_store = store;
@@ -458,6 +527,8 @@ fn start_transfer_engine(store: Store) {
             let cap = store.settings.read().transfers.bandwidth_limit_bytes as f64;
             let verify = store.settings.read().transfers.verify_sha256;
             let chunk = store.settings.read().transfers.chunk_bytes.max(1);
+            let resume = store.settings.read().transfers.resume_interrupted;
+            let default_policy = store.settings.read().transfers.overwrite_policy;
             let offline = *store.offline.read();
             let hosts = store.hosts.read().clone();
 
@@ -496,9 +567,9 @@ fn start_transfer_engine(store: Store) {
                         continue;
                     }
                     if let Some(bytes) = progress.get(&job.id) {
+                        job.bytes_done = *bytes;
                         let prev = prev_bytes.get(&job.id).copied().unwrap_or(0);
                         let d = bytes.saturating_sub(prev);
-                        job.bytes_done = job.bytes_done.saturating_add(d);
                         job.rate_bytes_per_s = d as f64;
                         aggregate_bps += d as f64;
                         prev_bytes.insert(job.id.clone(), *bytes);
@@ -630,6 +701,16 @@ fn start_transfer_engine(store: Store) {
                         .find(|h| h.id == job.host_id)
                         .cloned();
                     let Some(host) = host else { return };
+                    let opts = TransferOpts {
+                        chunk_bytes: chunk,
+                        verify,
+                        resume,
+                        policy: job.overwrite_policy.unwrap_or(default_policy),
+                        tree: job.is_tree,
+                        follow_symlinks: host.options.follow_symlinks,
+                        remote_mtime: job.remote_mtime,
+                        remote_size: job.remote_size,
+                    };
                     let result = match job.direction {
                         Direction::Up => {
                             backend
@@ -637,8 +718,7 @@ fn start_transfer_engine(store: Store) {
                                     &host,
                                     &job.remote_path,
                                     &job.local_path,
-                                    chunk,
-                                    verify,
+                                    opts,
                                     cancel.clone(),
                                     tx_up,
                                 )
@@ -650,31 +730,50 @@ fn start_transfer_engine(store: Store) {
                                     &host,
                                     &job.remote_path,
                                     &job.local_path,
-                                    chunk,
+                                    opts,
                                     cancel.clone(),
                                     tx_down,
                                 )
                                 .await
                         }
                     };
-                    // Record a failure timestamp so the engine's retry backoff
-                    // can pick this job up (E7-S4).
                     if result.is_err() {
                         failed.lock().unwrap().insert(job.id.clone(), Instant::now());
                     }
-                    // Finalize only if the job is still running; a cancelled
-                    // (removed) or paused job is left untouched.
                     let mut jobs = s.jobs.write();
                     if let Some(j) = jobs
                         .iter_mut()
                         .find(|j| j.id == job.id && j.state == JobState::Running)
                     {
                         match result {
-                            Ok(()) => {
-                                j.bytes_done = j.bytes_total;
-                                j.state = JobState::Done;
+                            Ok(outcome) => {
+                                j.bytes_done = outcome.bytes_done.max(j.bytes_done);
+                                if outcome.bytes_done > 0 {
+                                    j.bytes_total = j.bytes_total.max(outcome.bytes_done);
+                                }
+                                j.files_done = outcome.files_done;
+                                j.files_total = outcome.files_total;
+                                j.files_failed = outcome.files_failed;
+                                j.verify_method = outcome.verify_method;
+                                j.verified = outcome.verified;
+                                if outcome.files_failed > 0 && outcome.files_done == 0 {
+                                    j.state = JobState::Failed;
+                                    j.message = Some(format!(
+                                        "{} of {} failed",
+                                        outcome.files_failed, outcome.files_total
+                                    ));
+                                } else {
+                                    j.state = JobState::Done;
+                                    if outcome.files_failed > 0 {
+                                        j.message = Some(format!(
+                                            "{} of {} failed",
+                                            outcome.files_failed, outcome.files_total
+                                        ));
+                                    } else if let Some(n) = outcome.notice {
+                                        j.message = Some(n);
+                                    }
+                                }
                                 j.finished_at = Some(fixtures::now());
-                                j.verified = Some(verify);
                             }
                             Err(msg) => {
                                 j.state = JobState::Failed;
@@ -982,28 +1081,129 @@ impl Store {
     // ------------------------------------------------------------------
 
     pub fn enqueue(&mut self, direction: Direction, entry: &Entry) {
-        let host = self.selected_host_id.read().clone();
         let cwd = self.cwd.read().clone();
+        let remote_path = format!("{}/{}", cwd.trim_end_matches('/'), entry.name);
+        let local_path = format!("/Downloads/{}", entry.name);
+        let dest = match direction {
+            Direction::Up => local_path.clone(),
+            Direction::Down => remote_path.clone(),
+        };
+        let is_tree = entry.kind == EntryKind::Dir;
+        let policy = self
+            .apply_all_policy
+            .read()
+            .or(Some(self.settings.read().transfers.overwrite_policy))
+            .unwrap_or(OverwritePolicy::Ask);
+        let dest_exists = match direction {
+            Direction::Up => local_download_exists(&local_path),
+            Direction::Down => false,
+        };
+        if dest_exists && policy == OverwritePolicy::Ask && self.apply_all_policy.read().is_none() {
+            self.open_dialog(Dialog::Conflict {
+                direction,
+                name: entry.name.clone(),
+                dest,
+                remote_path,
+                local_path,
+                bytes_total: entry.size_bytes,
+                is_tree,
+                apply_all: false,
+                choice: OverwritePolicy::Overwrite,
+            });
+            return;
+        }
+        self.push_job(
+            direction,
+            &entry.name,
+            remote_path,
+            local_path,
+            entry.size_bytes,
+            is_tree,
+            if policy == OverwritePolicy::Ask {
+                None
+            } else {
+                Some(policy)
+            },
+        );
+    }
+
+    fn push_job(
+        &mut self,
+        direction: Direction,
+        name: &str,
+        remote_path: String,
+        local_path: String,
+        bytes_total: u64,
+        is_tree: bool,
+        overwrite_policy: Option<OverwritePolicy>,
+    ) {
+        let host = self.selected_host_id.read().clone();
         let mut jobs = self.jobs.write();
         jobs.push(Job {
-            id: format!("job-{}-{}", entry.name, JOB_SEQ.fetch_add(1, Ordering::Relaxed)),
+            id: format!("job-{}-{}", name, JOB_SEQ.fetch_add(1, Ordering::Relaxed)),
             direction,
-            name: entry.name.clone(),
+            name: name.to_string(),
             host_id: host,
-            remote_path: format!("{}/{}", cwd.trim_end_matches('/'), entry.name),
-            local_path: format!("/Downloads/{}", entry.name),
+            remote_path,
+            local_path,
             bytes_done: 0,
-            bytes_total: entry.size_bytes,
-            rate_bytes_per_s: 0.0,
-            eta_seconds: None,
+            bytes_total,
             state: JobState::Waiting,
-            attempt: 0,
-            max_attempts: 3,
-            errno: None,
-            message: None,
-            finished_at: None,
-            verified: None,
+            is_tree,
+            overwrite_policy,
+            ..Job::default()
         });
+    }
+
+    pub fn offer_orphans(&mut self, paths: Vec<String>) {
+        if paths.is_empty() {
+            return;
+        }
+        self.open_dialog(Dialog::OrphanPartials { paths });
+    }
+
+    pub fn resume_orphans(&mut self, paths: &[String]) {
+        for p in paths {
+            let name = std::path::Path::new(p)
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("partial")
+                .trim_end_matches(".mkpart")
+                .to_string();
+            let name = name.strip_suffix(".mkpart").unwrap_or(&name).to_string();
+            let matched = {
+                let mut jobs = self.jobs.write();
+                if let Some(j) = jobs.iter_mut().find(|j| {
+                    j.local_path.ends_with(&name)
+                        && matches!(j.state, JobState::Paused | JobState::Failed | JobState::Waiting)
+                }) {
+                    j.state = JobState::Waiting;
+                    j.overwrite_policy = Some(OverwritePolicy::Resume);
+                    true
+                } else {
+                    false
+                }
+            };
+            if !matched {
+                self.push_job(
+                    Direction::Up,
+                    &name,
+                    format!("/{name}"),
+                    format!("/Downloads/{name}"),
+                    0,
+                    false,
+                    Some(OverwritePolicy::Resume),
+                );
+            }
+        }
+        self.close_dialog();
+    }
+
+    pub fn discard_orphans(&mut self, paths: &[String]) {
+        for p in paths {
+            let _ = std::fs::remove_file(p);
+        }
+        self.close_dialog();
     }
 
     // ------------------------------------------------------------------
@@ -1099,6 +1299,7 @@ impl Store {
             message: Some("EACCES · injected by dev drawer".into()),
             finished_at: Some(fixtures::now()),
             verified: None,
+            ..Job::default()
         });
     }
 
@@ -1154,9 +1355,7 @@ impl Store {
     pub fn resume_job(&mut self, id: &str) {
         if let Some(j) = self.jobs.write().iter_mut().find(|j| j.id == id) {
             if j.state == JobState::Paused {
-                // No resume-from-offset yet: restart the copy from byte 0.
                 j.state = JobState::Running;
-                j.bytes_done = 0;
                 j.rate_bytes_per_s = 0.0;
                 j.eta_seconds = None;
             }
@@ -1273,6 +1472,14 @@ impl Store {
     pub fn toggle_strict_host_key(&mut self) {
         let mut s = self.settings.write();
         s.security.strict_host_key_checking = !s.security.strict_host_key_checking;
+        self.strict_host_key
+            .read()
+            .store(s.security.strict_host_key_checking, Ordering::Relaxed);
+    }
+
+    pub fn cycle_overwrite_policy(&mut self) {
+        let mut s = self.settings.write();
+        s.transfers.overwrite_policy = s.transfers.overwrite_policy.next();
     }
 
     /// CLEAR cache: zeroes the used bytes (pinned-offline files are untouched —
@@ -1301,18 +1508,60 @@ impl Store {
         });
     }
 
-    /// REVIEW a changed known host: accept the new key (E9-S4).
+    /// REVIEW a changed known host: accept the new key (E9-S4 / B-1).
     pub fn review_known_host(&mut self, id: &str) {
         let now = fixtures::now();
         let mut creds = self.credentials.write();
         if let Some(kh) = creds.known_hosts.iter_mut().find(|k| k.id == id) {
+            if let Some(pending) = kh.pending_fingerprint.take() {
+                kh.fingerprint = pending;
+            }
             kh.changed_since = None;
             kh.verified_at_secs = now;
         }
+        drop(creds);
+        let _ = self.backend.read().review_host_key(id);
     }
 
     pub fn remove_known_host(&mut self, id: &str) {
         self.credentials.write().known_hosts.retain(|k| k.id != id);
+        let _ = self.backend.read().remove_host_key(id);
+    }
+
+    pub fn accept_host_key(&mut self, host: &str, port: u16, key_type: &str, fingerprint: &str) {
+        let _ = self
+            .backend
+            .read()
+            .accept_host_key(host, port, key_type, fingerprint);
+        let mut creds = self.credentials.write();
+        if let Some(kh) = creds
+            .known_hosts
+            .iter_mut()
+            .find(|k| k.host == host || k.host == format!("[{host}]:{port}"))
+        {
+            kh.fingerprint = fingerprint.to_string();
+            kh.pending_fingerprint = None;
+            kh.changed_since = None;
+            kh.verified_at_secs = fixtures::now();
+        } else {
+            creds.known_hosts.push(KnownHost {
+                id: format!("kh-{host}-{port}"),
+                host: if port != 22 {
+                    format!("[{host}]:{port}")
+                } else {
+                    host.to_string()
+                },
+                key_type: match key_type {
+                    t if t.contains("ecdsa") => mk_core::credentials::KeyType::EcdsaP256,
+                    t if t.contains("rsa") => mk_core::credentials::KeyType::Rsa4096,
+                    _ => mk_core::credentials::KeyType::Ed25519,
+                },
+                fingerprint: fingerprint.to_string(),
+                verified_at_secs: fixtures::now(),
+                changed_since: None,
+                pending_fingerprint: None,
+            });
+        }
     }
 
     /// `wipe all credentials`: remove every key, password and known host.
@@ -1361,18 +1610,15 @@ impl Store {
         }
         drop(hosts);
 
-        // Accepting an unknown key writes the fingerprint to known hosts.
-        if draft.key_trusted && !draft.probe_log.is_empty() {
-            let mut creds = self.credentials.write();
-            if !creds.known_hosts.iter().any(|k| k.host == name) {
-                creds.known_hosts.push(KnownHost {
-                    id: format!("kh-{name}"),
-                    host: name.to_string(),
-                    key_type: KeyType::Ed25519,
-                    fingerprint: "SHA256:v8Kx7dR…q2Lp".into(),
-                    verified_at_secs: fixtures::now(),
-                    changed_since: None,
-                });
+        // Accepting an unknown key writes the real fingerprint to known hosts.
+        if draft.key_trusted {
+            if let Some(fp) = draft.pending_fingerprint.as_deref() {
+                let key_type = draft
+                    .pending_key_type
+                    .clone()
+                    .unwrap_or_else(|| "ssh-ed25519".into());
+                let port = draft.port.trim().parse().unwrap_or(22);
+                self.accept_host_key(address, port, &key_type, fp);
             }
         }
         self.dialog.set(None);
@@ -1524,6 +1770,51 @@ impl Store {
                 *self.dialog.write() = None;
                 return;
             }
+            Dialog::Conflict {
+                direction,
+                name,
+                remote_path,
+                local_path,
+                bytes_total,
+                is_tree,
+                apply_all,
+                choice,
+                ..
+            } => {
+                if apply_all {
+                    *self.apply_all_policy.write() = Some(choice);
+                }
+                self.push_job(
+                    direction,
+                    &name,
+                    remote_path,
+                    local_path,
+                    bytes_total,
+                    is_tree,
+                    Some(choice),
+                );
+                *self.dialog.write() = None;
+                return;
+            }
+            Dialog::TrustHost {
+                host,
+                port,
+                key_type,
+                fingerprint,
+                retry_list,
+                ..
+            } => {
+                self.accept_host_key(&host, port, &key_type, &fingerprint);
+                *self.dialog.write() = None;
+                if retry_list {
+                    self.reload();
+                }
+                return;
+            }
+            Dialog::OrphanPartials { paths } => {
+                self.discard_orphans(&paths);
+                return;
+            }
         };
 
         if let Some(op) = op {
@@ -1584,6 +1875,20 @@ async fn list_dir(this: Store, host: &Host, path: &str) -> Vec<Entry> {
         }
         Err(message) => {
             if *this.cwd.read() == path {
+                if let Some(prompt) = parse_host_key_error(&message) {
+                    this.open_dialog(Dialog::TrustHost {
+                        host: if prompt.host.is_empty() {
+                            host.address.clone()
+                        } else {
+                            prompt.host
+                        },
+                        port: prompt.port,
+                        key_type: prompt.key_type,
+                        fingerprint: prompt.fingerprint,
+                        old: prompt.old,
+                        retry_list: true,
+                    });
+                }
                 *this.listing_error.write() = Some(message);
                 this.mark_host_status(&host.id, HostStatus::Unreachable);
             }
@@ -1615,6 +1920,16 @@ impl Store {
             h.free_bytes = Some(free);
         }
     }
+}
+
+fn local_download_exists(local_path: &str) -> bool {
+    let rest = local_path
+        .strip_prefix("/Downloads/")
+        .unwrap_or(local_path);
+    if let Ok(home) = std::env::var("HOME") {
+        return std::path::Path::new(&home).join("Downloads").join(rest).exists();
+    }
+    std::path::Path::new(local_path).exists()
 }
 
 fn next_sort(spec: SortSpec) -> SortSpec {

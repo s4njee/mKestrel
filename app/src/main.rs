@@ -5,20 +5,21 @@
 //! (1194×834), injects the design-system CSS and the filesystem backend, and
 //! launches the Dioxus app. On iOS/Android the webview is full-screen.
 
-use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, AtomicU64};
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use dioxus::prelude::*;
 
 use mk_core::host::{AuthMethod, Entry};
-use mk_ui::backend::{ProbeLine, TransferProgress};
+use mk_ui::backend::{ProbeLine, TransferOpts, TransferOutcome, TransferProgress};
 use mk_ui::{FsBackend, Root};
 
 #[cfg(target_os = "android")]
 mod android;
 mod transfer;
+mod tree;
 
 /// The single design-system stylesheet, injected once at the root.
 const CSS: &str = include_str!("../../assets/main.css");
@@ -40,6 +41,7 @@ static STORE_PATH: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::ne
 struct BackendAdapter {
     pool: Arc<mk_vfs::ConnectionPool>,
     limiter: Arc<transfer::BandwidthLimiter>,
+    known_hosts: Arc<std::sync::Mutex<mk_vfs::KnownHostsStore>>,
 }
 
 #[async_trait]
@@ -89,44 +91,96 @@ impl FsBackend for BackendAdapter {
         host: &mk_core::host::Host,
         remote_path: &str,
         local_path: &str,
-        chunk_bytes: u64,
-        verify: bool,
+        opts: TransferOpts,
         cancel: Arc<AtomicBool>,
         progress: tokio::sync::mpsc::UnboundedSender<TransferProgress>,
-    ) -> Result<(), String> {
+    ) -> Result<TransferOutcome, String> {
         let backend = self.pool.get(host).await;
-        transfer::download(
-            &backend,
-            remote_path,
-            local_path,
-            chunk_bytes,
-            verify,
-            cancel.as_ref(),
-            &self.limiter,
-            progress,
-        )
-        .await
+        let symlink = if opts.follow_symlinks {
+            tree::SymlinkPolicy::Follow
+        } else {
+            tree::SymlinkPolicy::Skip
+        };
+        if opts.tree {
+            tree::download_tree(
+                &backend,
+                remote_path,
+                local_path,
+                opts.chunk_bytes,
+                opts.verify,
+                cancel.as_ref(),
+                &self.limiter,
+                progress,
+                symlink,
+                opts.resume,
+                opts.policy,
+            )
+            .await
+        } else {
+            transfer::download(
+                &backend,
+                remote_path,
+                local_path,
+                opts.chunk_bytes,
+                opts.verify,
+                cancel.as_ref(),
+                &self.limiter,
+                progress,
+                opts.resume,
+                opts.policy,
+                opts.remote_mtime,
+                opts.remote_size,
+            )
+            .await
+        }
     }
     async fn upload(
         &self,
         host: &mk_core::host::Host,
         remote_path: &str,
         local_path: &str,
-        chunk_bytes: u64,
+        opts: TransferOpts,
         cancel: Arc<AtomicBool>,
         progress: tokio::sync::mpsc::UnboundedSender<TransferProgress>,
-    ) -> Result<(), String> {
+    ) -> Result<TransferOutcome, String> {
         let backend = self.pool.get(host).await;
-        transfer::upload(
-            &backend,
-            remote_path,
-            local_path,
-            chunk_bytes,
-            cancel.as_ref(),
-            &self.limiter,
-            progress,
-        )
-        .await
+        let symlink = if opts.follow_symlinks {
+            tree::SymlinkPolicy::Follow
+        } else {
+            tree::SymlinkPolicy::Skip
+        };
+        if opts.tree {
+            tree::upload_tree(
+                &backend,
+                local_path,
+                remote_path,
+                opts.chunk_bytes,
+                opts.verify,
+                cancel.as_ref(),
+                &self.limiter,
+                progress,
+                symlink,
+                opts.resume,
+                opts.policy,
+            )
+            .await
+        } else {
+            transfer::upload(
+                &backend,
+                remote_path,
+                local_path,
+                opts.chunk_bytes,
+                opts.verify,
+                cancel.as_ref(),
+                &self.limiter,
+                progress,
+                opts.resume,
+                opts.policy,
+                opts.remote_mtime,
+                opts.remote_size,
+            )
+            .await
+        }
     }
     async fn probe(&self, host: &mk_core::host::Host) -> Result<Vec<ProbeLine>, String> {
         let backend = self.pool.get(host).await;
@@ -146,6 +200,34 @@ impl FsBackend for BackendAdapter {
         let backend = self.pool.get(host).await;
         let st = backend.statfs(path).await.map_err(|e| e.to_string())?;
         Ok((st.free_bytes, st.total_bytes))
+    }
+
+    fn accept_host_key(
+        &self,
+        host: &str,
+        port: u16,
+        key_type: &str,
+        fingerprint: &str,
+    ) -> Result<(), String> {
+        self.known_hosts
+            .lock()
+            .map_err(|e| e.to_string())?
+            .add(host, port, key_type, fingerprint);
+        Ok(())
+    }
+    fn review_host_key(&self, id_or_host: &str) -> Result<(), String> {
+        self.known_hosts
+            .lock()
+            .map_err(|e| e.to_string())?
+            .review(id_or_host);
+        Ok(())
+    }
+    fn remove_host_key(&self, id_or_host: &str) -> Result<(), String> {
+        self.known_hosts
+            .lock()
+            .map_err(|e| e.to_string())?
+            .remove(id_or_host);
+        Ok(())
     }
 }
 
@@ -225,27 +307,31 @@ fn mock_or_local() -> Arc<dyn mk_vfs::VfsBackend> {
     Arc::new(mk_vfs::LocalBackend)
 }
 
-/// The local private key used for SFTP key auth: prefers ed25519, falls back
-/// to RSA. The credential store (`mk-secrets`) is not wired yet, so key auth
-/// uses a well-known path rather than resolving `host.key_id`.
-fn default_key_path() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/Users/sanjee".into());
-    let ed = PathBuf::from(format!("{home}/.ssh/id_ed25519"));
-    if ed.exists() {
-        ed
-    } else {
-        PathBuf::from(format!("{home}/.ssh/id_rsa"))
+fn known_hosts_path(store_path: Option<&str>) -> PathBuf {
+    match store_path {
+        Some(p) => {
+            let p = Path::new(p);
+            p.parent()
+                .unwrap_or(Path::new("."))
+                .join("mkestral-known-hosts.json")
+        }
+        None => PathBuf::from("mkestral-known-hosts.json"),
     }
 }
 
-fn make_backend(vault: mk_ui::PasswordVault, cap: Arc<AtomicU64>) -> Arc<dyn FsBackend> {
+fn make_backend(
+    vault: mk_ui::PasswordVault,
+    cap: Arc<AtomicU64>,
+    known_hosts: Arc<std::sync::Mutex<mk_vfs::KnownHostsStore>>,
+    secrets: Arc<dyn mk_secrets::SecretStore>,
+    strict: Arc<AtomicBool>,
+) -> Arc<dyn FsBackend> {
     // The SFTP backends read the shared host-password store at connect time,
     // so a correction just works. The caller owns one vault and passes it both
     // here and (as context) to the UI, so both sides see the same passwords.
     let sftp_vault: mk_vfs::SftpVault = vault.clone();
-    // One limiter is shared across every concurrent transfer; the cap atomic is
-    // also provided to the UI so the LIMIT setting applies live.
     let limiter = Arc::new(transfer::BandwidthLimiter::new(cap.clone()));
+    let kh_for_pool = known_hosts.clone();
 
     let pool = Arc::new(mk_vfs::ConnectionPool::new(move |host| {
         let vfs: Arc<dyn mk_vfs::VfsBackend> = if !host.is_real {
@@ -260,13 +346,25 @@ fn make_backend(vault: mk_ui::PasswordVault, cap: Arc<AtomicU64>) -> Arc<dyn FsB
                                 host_id: host.id.clone(),
                             }
                         }
-                        // Key and agent both use a local key file; a real
-                        // ssh-agent / kbd-int flow is a follow-up.
                         AuthMethod::Key | AuthMethod::Agent => {
-                            mk_vfs::SftpAuth::Key { path: default_key_path() }
+                            let path = mk_secrets::resolve_key_path(
+                                secrets.as_ref(),
+                                host.key_id.as_deref(),
+                                None,
+                            );
+                            let passphrase = host
+                                .key_id
+                                .as_deref()
+                                .and_then(|id| secrets.get_key_passphrase(id).ok().flatten());
+                            mk_vfs::SftpAuth::Key { path, passphrase }
                         }
                     };
-                    Arc::new(mk_vfs::SftpBackend::new(auth, host.clone()))
+                    Arc::new(mk_vfs::SftpBackend::new(
+                        auth,
+                        host.clone(),
+                        kh_for_pool.clone(),
+                        strict.clone(),
+                    ))
                 }
                 mk_core::host::Protocol::Nfs3 | mk_core::host::Protocol::Nfs4 => {
                     if cfg!(any(target_os = "ios", target_os = "android")) {
@@ -292,7 +390,11 @@ fn make_backend(vault: mk_ui::PasswordVault, cap: Arc<AtomicU64>) -> Arc<dyn FsB
         vfs
     }));
     mk_vfs::spawn_pool_reaper(pool.clone(), std::time::Duration::from_secs(15));
-    Arc::new(BackendAdapter { pool, limiter })
+    Arc::new(BackendAdapter {
+        pool,
+        limiter,
+        known_hosts,
+    })
 }
 
 #[allow(non_snake_case)] // dioxus root component
@@ -307,28 +409,111 @@ fn App() -> Element {
     let store_path = STORE_PATH.get().cloned().flatten();
 
     // One shared password vault: the UI writes to it (host dialog / password
-    // prompt) and the SFTP backends read from it at connect time. Without this
-    // the store and the backend each hold a different empty map and every
-    // password-auth host fails with "permission denied".
+    // prompt) and the SFTP backends read from it at connect time. Durable
+    // copies live in mk-secrets (OS keyring / app-private file).
     let vault: mk_ui::PasswordVault =
         Arc::new(std::sync::Mutex::new(std::collections::HashMap::new()));
-    // Shared bandwidth cap (bytes/s); the UI writes it live, the limiter reads it.
+    let secrets: Arc<dyn mk_secrets::SecretStore> = Arc::new(
+        mk_secrets::CachedVault::platform_default(std::time::Duration::from_secs(300)),
+    );
+    if let Some(path) = store_path.as_deref() {
+        if let Ok(state) = mk_core::persistence::load(Path::new(path)) {
+            let mut map = vault.lock().unwrap();
+            for host in &state.hosts {
+                if let Ok(Some(pw)) = secrets.get_password(&host.id) {
+                    map.insert(host.id.clone(), pw);
+                }
+                if let Some(kid) = &host.key_id {
+                    if secrets.get_key_path(kid).ok().flatten().is_none() {
+                        if let Some(key) = state.credentials.keys.iter().find(|k| k.id == *kid) {
+                            if let Some(home) = std::env::var_os("HOME") {
+                                let p = PathBuf::from(home).join(".ssh").join(&key.name);
+                                let _ = secrets.set_key_path(kid, &p.to_string_lossy());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     let cap: Arc<AtomicU64> = Arc::new(AtomicU64::new(20 * 1024 * 1024));
+    let strict = Arc::new(AtomicBool::new(true));
+    if let Some(path) = store_path.as_deref() {
+        if let Ok(state) = mk_core::persistence::load(Path::new(path)) {
+            strict.store(
+                state.settings.security.strict_host_key_checking,
+                Ordering::Relaxed,
+            );
+        }
+    }
+
+    let kh_path = known_hosts_path(store_path.as_deref());
+    let mut kh_store = mk_vfs::KnownHostsStore::load(&kh_path).unwrap_or_else(|_| {
+        let mut s = mk_vfs::KnownHostsStore::new(kh_path);
+        if let Some(path) = store_path.as_deref() {
+            if let Ok(state) = mk_core::persistence::load(Path::new(path)) {
+                s.merge_known_hosts(&state.credentials.known_hosts);
+            }
+        }
+        s
+    });
+    if let Some(path) = store_path.as_deref() {
+        if let Ok(state) = mk_core::persistence::load(Path::new(path)) {
+            kh_store.merge_known_hosts(&state.credentials.known_hosts);
+        }
+    }
+    let known_hosts = Arc::new(std::sync::Mutex::new(kh_store));
 
     let vault_for_ctx = vault.clone();
     use_context_provider(move || vault_for_ctx.clone());
     let cap_for_ctx = cap.clone();
     use_context_provider(move || cap_for_ctx.clone());
+    let strict_for_ctx = strict.clone();
+    use_context_provider(move || strict_for_ctx.clone());
     let vault_for_backend = vault.clone();
     let cap_for_backend = cap.clone();
-    use_context_provider(move || make_backend(vault_for_backend.clone(), cap_for_backend.clone()));
+    let kh_for_backend = known_hosts.clone();
+    let secrets_for_backend = secrets.clone();
+    let strict_for_backend = strict.clone();
+    use_context_provider(move || {
+        make_backend(
+            vault_for_backend.clone(),
+            cap_for_backend.clone(),
+            kh_for_backend.clone(),
+            secrets_for_backend.clone(),
+            strict_for_backend.clone(),
+        )
+    });
 
-    // Let the dev drawer swap backends (E0-S4).
     let vault_for_factory = vault.clone();
     let cap_for_factory = cap.clone();
-    let factory: mk_ui::BackendFactory =
-        Arc::new(move |_| make_backend(vault_for_factory.clone(), cap_for_factory.clone()));
+    let kh_for_factory = known_hosts.clone();
+    let secrets_for_factory = secrets.clone();
+    let strict_for_factory = strict.clone();
+    let factory: mk_ui::BackendFactory = Arc::new(move |_| {
+        make_backend(
+            vault_for_factory.clone(),
+            cap_for_factory.clone(),
+            kh_for_factory.clone(),
+            secrets_for_factory.clone(),
+            strict_for_factory.clone(),
+        )
+    });
     use_context_provider(move || factory.clone());
+
+    // Persist in-process password cache back to the durable vault.
+    let vault_sync = vault.clone();
+    let secrets_sync = secrets.clone();
+    std::thread::spawn(move || loop {
+        std::thread::sleep(std::time::Duration::from_secs(3));
+        let snapshot: Vec<(String, String)> = vault_sync
+            .lock()
+            .map(|g| g.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+            .unwrap_or_default();
+        for (id, pw) in snapshot {
+            let _ = secrets_sync.set_password(&id, &pw);
+        }
+    });
 
     rsx! {
         style { "{CSS}" }
@@ -452,5 +637,6 @@ fn main() {
     let _ = OFFLINE.set(has_flag("--offline"));
     let _ = DEV.set(has_flag("--dev"));
     let _ = STORE_PATH.set(store_path);
+
     launch();
 }

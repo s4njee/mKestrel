@@ -18,7 +18,10 @@ pub mod settings;
 pub mod store;
 pub mod tokens;
 
-pub use backend::{BackendFactory, EmptyBackend, FsBackend, PasswordVault};
+pub use backend::{
+    BackendFactory, EmptyBackend, FsBackend, PasswordVault, TransferOpts, TransferOutcome,
+    TransferProgress,
+};
 pub use browser::BrowserScreen;
 pub use components::*;
 #[cfg(debug_assertions)]

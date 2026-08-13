@@ -43,6 +43,9 @@ fn dialog_tag(d: &Dialog) -> &'static str {
         Dialog::WipeCredentials => "wipe",
         Dialog::Remount { .. } => "remount",
         Dialog::HostPassword { .. } => "password",
+        Dialog::Conflict { .. } => "conflict",
+        Dialog::TrustHost { .. } => "trust",
+        Dialog::OrphanPartials { .. } => "orphans",
     }
 }
 
@@ -125,6 +128,43 @@ fn DialogBody(dialog: Dialog) -> Element {
                         oninput: move |v| patch_dialog(store, |dlg| if let Dialog::HostPassword { password, .. } = dlg { *password = v; }),
                     }
                 },
+                Dialog::Conflict { name, dest, choice, apply_all, .. } => rsx! {
+                    div { class: "dialog-title", "file exists" }
+                    div { class: "dialog-hint", "{name} already at {dest}" }
+                    div { class: "dialog-hint", "policy: {choice.as_str()}" }
+                    div { class: "dialog-hint",
+                        onclick: move |_| patch_dialog(store, |dlg| {
+                            if let Dialog::Conflict { choice, .. } = dlg {
+                                *choice = choice.next();
+                            }
+                        }),
+                        "cycle policy"
+                    }
+                    div { class: "dialog-hint",
+                        onclick: move |_| patch_dialog(store, |dlg| {
+                            if let Dialog::Conflict { apply_all, .. } = dlg {
+                                *apply_all = !*apply_all;
+                            }
+                        }),
+                        if *apply_all { "apply to all: on" } else { "apply to all: off" }
+                    }
+                },
+                Dialog::TrustHost { host, port, fingerprint, old, .. } => rsx! {
+                    div { class: "dialog-title", if old.is_some() { "host key changed" } else { "unknown host key" } }
+                    div { class: "dialog-hint", "{host}:{port}" }
+                    if let Some(old_fp) = old {
+                        div { class: "dialog-hint", "old {old_fp}" }
+                    }
+                    div { class: "dialog-hint", "new {fingerprint}" }
+                    div { class: "dialog-hint", "connection refused until you trust this key" }
+                },
+                Dialog::OrphanPartials { paths } => rsx! {
+                    div { class: "dialog-title", "orphaned partials" }
+                    div { class: "dialog-hint", "{paths.len()} .mkpart file(s) left from interrupted transfers" }
+                    for p in paths.iter().take(6) {
+                        div { class: "dialog-hint", "{p}" }
+                    }
+                },
             }}
             if let Some(err) = &*store.dialog_error.read() {
                 div { class: "dialog-error", "{err}" }
@@ -137,6 +177,23 @@ fn DialogBody(dialog: Dialog) -> Element {
                     }
                     Dialog::Remount { .. } => {
                         rsx! { AccentButton { label: "REMOUNT".to_string(), onpress: submit } }
+                    }
+                    Dialog::TrustHost { .. } => {
+                        rsx! { AccentButton { label: "TRUST".to_string(), onpress: submit } }
+                    }
+                    Dialog::OrphanPartials { paths } => {
+                        let resume_paths = paths.clone();
+                        let drop_paths = paths.clone();
+                        rsx! {
+                            OutlineButton {
+                                label: "DELETE".to_string(),
+                                onpress: move |_| { let mut s = store; s.discard_orphans(&drop_paths); },
+                            }
+                            AccentButton {
+                                label: "RESUME".to_string(),
+                                onpress: move |_| { let mut s = store; s.resume_orphans(&resume_paths); },
+                            }
+                        }
                     }
                     _ => rsx! { AccentButton { label: "APPLY".to_string(), onpress: submit } },
                 }}
@@ -468,10 +525,33 @@ fn start_probe(store: Store) {
                     s.append_probe(line);
                 }
                 s.set_probe_state(ProbeState::Success);
+                patch_draft(s, |d| d.key_trusted = true);
             }
             Err(message) => {
-                s.append_probe(ProbeLine::Error(message));
-                s.set_probe_state(ProbeState::Failed);
+                if let Some(prompt) = crate::backend::parse_host_key_error(&message) {
+                    if prompt.changed {
+                        s.append_probe(ProbeLine::Error(format!(
+                            "fingerprint changed · {} → {}",
+                            prompt.old.clone().unwrap_or_default(),
+                            prompt.fingerprint
+                        )));
+                    } else {
+                        s.append_probe(ProbeLine::Warn(
+                            "host key not in known_hosts".into(),
+                        ));
+                    }
+                    s.append_probe(ProbeLine::Warn(prompt.fingerprint.clone()));
+                    patch_draft(s, move |d| {
+                        d.pending_fingerprint = Some(prompt.fingerprint);
+                        d.pending_key_type = Some(prompt.key_type);
+                        d.pending_old_fingerprint = prompt.old;
+                        d.key_trusted = false;
+                    });
+                    s.set_probe_state(ProbeState::Success);
+                } else {
+                    s.append_probe(ProbeLine::Error(message));
+                    s.set_probe_state(ProbeState::Failed);
+                }
             }
         }
     });

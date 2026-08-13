@@ -26,6 +26,43 @@ pub struct SortSpec {
     pub dir: SortDir,
 }
 
+/// What to do when the destination already exists (B-6).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum OverwritePolicy {
+    /// Prompt on single transfers; batches use apply-to-all once answered.
+    #[default]
+    Ask,
+    Overwrite,
+    Skip,
+    Resume,
+    Rename,
+    NewerOnly,
+}
+
+impl OverwritePolicy {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            OverwritePolicy::Ask => "ask",
+            OverwritePolicy::Overwrite => "overwrite",
+            OverwritePolicy::Skip => "skip",
+            OverwritePolicy::Resume => "resume",
+            OverwritePolicy::Rename => "rename",
+            OverwritePolicy::NewerOnly => "newer only",
+        }
+    }
+
+    pub fn next(self) -> Self {
+        match self {
+            OverwritePolicy::Ask => OverwritePolicy::Overwrite,
+            OverwritePolicy::Overwrite => OverwritePolicy::Skip,
+            OverwritePolicy::Skip => OverwritePolicy::Resume,
+            OverwritePolicy::Resume => OverwritePolicy::Rename,
+            OverwritePolicy::Rename => OverwritePolicy::NewerOnly,
+            OverwritePolicy::NewerOnly => OverwritePolicy::Ask,
+        }
+    }
+}
+
 /// TRANSFERS settings group (E9-S2).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TransferSettings {
@@ -36,6 +73,9 @@ pub struct TransferSettings {
     pub chunk_bytes: u64,
     pub resume_interrupted: bool,
     pub verify_sha256: bool,
+    /// Default conflict policy for GET/PUT and same-host move/copy (B-6).
+    #[serde(default)]
+    pub overwrite_policy: OverwritePolicy,
 }
 
 impl Default for TransferSettings {
@@ -47,6 +87,7 @@ impl Default for TransferSettings {
             chunk_bytes: 1024 * 1024,
             resume_interrupted: true,
             verify_sha256: false,
+            overwrite_policy: OverwritePolicy::Ask,
         }
     }
 }
@@ -79,6 +120,13 @@ impl Default for BrowsingSettings {
 pub struct SecuritySettings {
     pub unlock_with_biometrics: bool,
     pub strict_host_key_checking: bool,
+    /// How long decrypted passphrases stay in the in-process cache (B-2).
+    #[serde(default = "default_passphrase_cache_secs")]
+    pub passphrase_cache_secs: u64,
+}
+
+fn default_passphrase_cache_secs() -> u64 {
+    300
 }
 
 impl Default for SecuritySettings {
@@ -86,6 +134,7 @@ impl Default for SecuritySettings {
         SecuritySettings {
             unlock_with_biometrics: true,
             strict_host_key_checking: true,
+            passphrase_cache_secs: default_passphrase_cache_secs(),
         }
     }
 }

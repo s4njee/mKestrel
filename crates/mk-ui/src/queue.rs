@@ -149,7 +149,13 @@ fn QueueRow(job: Job) -> Element {
                 span { class: "col-qhost", "{host}:{mock::dir_of(&job.remote_path)}" }
                 span { class: "col-qrate", "{format_rate(job.rate_bytes_per_s)}" }
                 span { class: "col-qeta", "{format_eta_opt(job.eta_seconds)}" }
-                span { class: "col-qprog accent-cell", "{format_size(job.bytes_done)}/{format_size(job.bytes_total)}" }
+                span { class: "col-qprog accent-cell",
+                    if job.is_tree && job.files_total > 0 {
+                        "{job.files_done}/{job.files_total} · {format_size(job.bytes_done)}"
+                    } else {
+                        "{format_size(job.bytes_done)}/{format_size(job.bytes_total)}"
+                    }
+                }
                 div { class: "queue-row-bar", ProgressBar { percent: job_pct(&job) } }
             }
         },
@@ -199,7 +205,19 @@ fn QueueRow(job: Job) -> Element {
                 span { class: "col-qhost", "{host}:{mock::dir_of(&job.remote_path)}" }
                 span { class: "col-qrate" }
                 span { class: "col-qeta" }
-                span { class: "col-qprog done-name", if job.verified == Some(true) { "verified" } else { "done" } }
+                span { class: "col-qprog done-name",
+                    {
+                        if job.is_tree && job.files_failed > 0 {
+                            format!("{} of {} failed", job.files_failed, job.files_total)
+                        } else if let Some(method) = job.verify_method {
+                            method.queue_label(job.verified).to_string()
+                        } else if job.verified == Some(true) {
+                            "verified".into()
+                        } else {
+                            "done".into()
+                        }
+                    }
+                }
             }
         },
         JobState::Paused => rsx! {
