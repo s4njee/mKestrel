@@ -543,11 +543,12 @@ fn EntryRow(entry: Entry) -> Element {
                     return;
                 }
                 let mut s = store;
-                // Tap a folder to open it; tap a file to select (the selection
-                // bar slides up). Selection of folders is via checkbox / long-
-                // press, per the touch-first design.
+                // Tap a folder to open it; tap a file to select, or tap again
+                // to unselect. Selection of folders is via checkbox / long-press.
                 if is_dir {
                     s.open_dir(&click_name);
+                } else if s.is_selected(&click_name) {
+                    s.clear_selection();
                 } else {
                     s.select_only(&click_name);
                 }
