@@ -1,22 +1,76 @@
-//! Transfer queue screen (`2b`, E7-S2..S5): header with live counts and
-//! actions, the queue table with every row state (active / waiting / failed /
-//! completed), the pane footer, and the 296px throughput panel with the live
-//! 60s histogram, settings rows, and per-host rates.
+//! Transfer queue screen (`2b`): card list matching design `04`, plus the
+//! 296px throughput panel.
 
 use dioxus::prelude::*;
 
-use mk_core::fmt::{format_mtime, format_rate, format_size};
+use mk_core::fmt::{format_eta, format_mtime, format_rate, format_size};
+use mk_core::host::{Host, Protocol};
 use mk_core::job::{Direction, Job, JobState};
 
 use crate::components::*;
 use crate::mock;
-use crate::store::{use_store, Dialog};
+use crate::store::use_store;
 
 fn job_pct(job: &Job) -> f64 {
     if job.bytes_total == 0 {
         0.0
     } else {
         job.bytes_done as f64 / job.bytes_total as f64 * 100.0
+    }
+}
+
+fn format_left(secs: Option<u64>) -> String {
+    match secs {
+        None => "—".into(),
+        Some(0) => "0s left".into(),
+        Some(s) if s < 60 => format!("{s}s left"),
+        Some(s) => format!("{} left", format_eta(s)),
+    }
+}
+
+fn host_for<'a>(hosts: &'a [Host], id: &str) -> Option<&'a Host> {
+    hosts.iter().find(|h| h.id == id)
+}
+
+fn badge_label(job: &Job, proto: Protocol) -> String {
+    format!(
+        "{} {}",
+        job.direction.arrow(),
+        proto.as_str().to_ascii_uppercase()
+    )
+}
+
+fn badge_class(proto: Protocol) -> &'static str {
+    match proto {
+        Protocol::Nfs3 | Protocol::Nfs4 => "xfer-badge xfer-badge-nfs",
+        _ => "xfer-badge xfer-badge-sftp",
+    }
+}
+
+fn fill_class(proto: Protocol) -> &'static str {
+    match proto {
+        Protocol::Nfs3 | Protocol::Nfs4 => "xfer-fill xfer-fill-nfs",
+        _ => "xfer-fill xfer-fill-sftp",
+    }
+}
+
+fn route_line(job: &Job, host_name: &str) -> String {
+    let remote = mock::dir_of(&job.remote_path);
+    let local = mock::dir_of(&job.local_path);
+    match job.direction {
+        Direction::Up => format!("{host_name} → On device {local}"),
+        Direction::Down => format!("On device → {host_name} {remote}"),
+    }
+}
+
+fn finish_time(secs: Option<i64>) -> String {
+    match secs {
+        Some(s) => format_mtime(s)
+            .split_whitespace()
+            .nth(1)
+            .unwrap_or("--:--")
+            .to_string(),
+        None => "--:--".to_string(),
     }
 }
 
@@ -30,7 +84,7 @@ pub fn QueueScreen() -> Element {
         div { class: "queue-screen",
             QueueHeader {}
             div { class: "queue-body",
-                QueueTable {}
+                QueueList {}
                 ThroughputPanel {}
             }
         }
@@ -38,254 +92,221 @@ pub fn QueueScreen() -> Element {
 }
 
 // ---------------------------------------------------------------------------
-// Header (E7-S2)
+// Header (design 04)
 // ---------------------------------------------------------------------------
 
 #[component]
 fn QueueHeader() -> Element {
     let store = use_store();
-    let (running, waiting, failed, done) = store.queue_counts();
-    let cap_mbps = store.settings.read().transfers.bandwidth_limit_bytes / (1024 * 1024);
+    let jobs = store.jobs.read().clone();
+    let active: Vec<&Job> = jobs
+        .iter()
+        .filter(|j| j.state == JobState::Running || j.state == JobState::Paused)
+        .collect();
+    let n_active = active.len();
+    let rate: f64 = active.iter().map(|j| j.rate_bytes_per_s).sum();
+    let eta = active.iter().filter_map(|j| j.eta_seconds).max();
+    let counts = if n_active == 0 {
+        "0 active".to_string()
+    } else {
+        format!(
+            "{n_active} active · {} · {}",
+            format_rate(rate),
+            format_left(eta)
+        )
+    };
 
     rsx! {
         div { class: "queue-header",
             span {
-                class: "toolbar-verb",
+                class: "xfer-back",
                 onclick: move |_| { let mut s = store; s.show_browser(); },
-                "←"
+                "‹"
             }
-            span { class: "queue-title", "Transfers" }
-            span { class: "queue-counts",
-                "{running} running · {waiting} waiting · {failed} failed · {done} done today"
+            div { class: "xfer-title-block",
+                span { class: "queue-title", "Transfers" }
+                span { class: "queue-counts", "{counts}" }
             }
             div { class: "spacer" }
-            span {
-                class: "toolbar-verb",
+            button {
+                class: "xfer-hdr-btn",
                 onclick: move |_| { let mut s = store; s.toggle_pause_all(); },
-                "PAUSE ALL"
+                "Pause all"
             }
-            span {
-                class: "toolbar-verb",
+            button {
+                class: "xfer-hdr-btn xfer-hdr-btn-muted",
                 onclick: move |_| { let mut s = store; s.clear_done(); },
-                "CLEAR DONE"
-            }
-            span {
-                class: "toolbar-verb accent",
-                onclick: move |_| {
-                    let mut s = store;
-                    s.open_dialog(Dialog::BandwidthLimit { mbps: cap_mbps.to_string() });
-                },
-                "LIMIT {cap_mbps}M/s"
+                "Clear finished"
             }
         }
     }
 }
 
 // ---------------------------------------------------------------------------
-// Queue table (E7-S2 / E7-S3)
+// Card list
 // ---------------------------------------------------------------------------
 
-const QUEUE_COLUMNS: [(&str, &str); 6] = [
-    ("col-dir", "DIR"),
-    ("col-qfile", "FILE"),
-    ("col-qhost", "HOST · PATH"),
-    ("col-qrate", "RATE"),
-    ("col-qeta", "ETA"),
-    ("col-qprog", "PROGRESS"),
-];
-
 #[component]
-fn QueueTable() -> Element {
+fn QueueList() -> Element {
     let store = use_store();
     let jobs = store.jobs.read().clone();
-    let (_, _, _, done) = store.queue_counts();
     let active: Vec<Job> = jobs
         .iter()
-        .filter(|j| j.state != JobState::Done)
+        .filter(|j| j.state == JobState::Running || j.state == JobState::Paused)
         .cloned()
         .collect();
+    let queued: Vec<Job> = jobs
+        .iter()
+        .filter(|j| j.state == JobState::Waiting)
+        .cloned()
+        .collect();
+    let finished: Vec<Job> = jobs
+        .iter()
+        .filter(|j| j.state == JobState::Done || j.state == JobState::Failed)
+        .cloned()
+        .collect();
+    let empty = active.is_empty() && queued.is_empty() && finished.is_empty();
 
     rsx! {
-        div { class: "queue-table",
-            div { class: "table-header",
-                for (class, label) in QUEUE_COLUMNS {
-                    span { class: "{class} t-col-header", "{label}" }
+        div { class: "xfer-list",
+            if empty {
+                div { class: "state-box",
+                    div { class: "state-title", "no transfers" }
+                    div { class: "state-sub", "downloads and uploads will show up here" }
                 }
             }
-            div { class: "queue-rows",
-                for job in &active {
-                    QueueRow { job: job.clone(), key: "{job.id}" }
-                }
-                if done > 0 {
-                    div { class: "queue-group", "COMPLETED · TODAY" }
-                    for job in jobs.iter().filter(|j| j.state == JobState::Done) {
-                        QueueRow { job: job.clone(), key: "{job.id}" }
-                    }
+            for job in active {
+                ActiveCard { job: job, key: "{job.id}" }
+            }
+            if !queued.is_empty() {
+                div { class: "xfer-section", "QUEUED · {queued.len()}" }
+                for job in queued {
+                    QueuedCard { job: job, key: "{job.id}" }
                 }
             }
-            QueueFooter {}
+            if !finished.is_empty() {
+                div { class: "xfer-section", "FINISHED · TODAY" }
+                for job in finished {
+                    FinishedCard { job: job, key: "{job.id}" }
+                }
+            }
         }
     }
 }
 
 #[component]
-fn QueueRow(job: Job) -> Element {
+fn ActiveCard(job: Job) -> Element {
     let store = use_store();
-    let host = store
-        .hosts
-        .read()
-        .iter()
-        .find(|h| h.id == job.host_id)
+    let hosts = store.hosts.read();
+    let host = host_for(&hosts, &job.host_id);
+    let proto = host.map(|h| h.protocol).unwrap_or(Protocol::Sftp);
+    let host_name = host
         .map(|h| h.name.clone())
         .unwrap_or_else(|| job.host_id.clone());
-    let host_down = store.job_host_unreachable(&job.host_id);
-    let arrow = job.direction.arrow();
+    let pct = job_pct(&job);
+    let paused = job.state == JobState::Paused;
+    let pause_id = job.id.clone();
+    let meta = if job.is_tree && job.files_total > 0 {
+        format!(
+            "{} / {} · {}",
+            format_size(job.bytes_done),
+            format_size(job.bytes_total),
+            format_rate(job.rate_bytes_per_s)
+        )
+    } else {
+        format!(
+            "{} / {} · {}",
+            format_size(job.bytes_done),
+            format_size(job.bytes_total),
+            format_rate(job.rate_bytes_per_s)
+        )
+    };
+    let foot_right = format!("{pct:.0}% · {}", format_left(job.eta_seconds));
+    let route = route_line(&job, &host_name);
 
-    match job.state {
-        JobState::Running => {
-            let cancel_id = job.id.clone();
-            rsx! {
-                div { class: "queue-row active",
-                    span { class: "col-dir accent-cell", "{arrow}" }
-                    span { class: "col-qfile", "{job.name}" }
-                    span { class: "col-qhost", "{host}:{mock::dir_of(&job.remote_path)}" }
-                    span { class: "col-qrate", "{format_rate(job.rate_bytes_per_s)}" }
-                    span {
-                        class: "col-qeta cancel",
-                        onclick: move |_| { let mut s = store; s.cancel_job(&cancel_id); },
-                        "cancel"
-                    }
-                    span { class: "col-qprog accent-cell",
-                        if job.is_tree && job.files_total > 0 {
-                            "{job.files_done}/{job.files_total} · {format_size(job.bytes_done)}"
+    rsx! {
+        div { class: "xfer-card",
+            div { class: "xfer-top",
+                span { class: "{badge_class(proto)}", "{badge_label(&job, proto)}" }
+                span { class: "xfer-name", "{job.name}" }
+                span { class: "xfer-meta", "{meta}" }
+                button {
+                    class: "xfer-pause",
+                    onclick: move |_| {
+                        let mut s = store;
+                        if paused {
+                            s.resume_job(&pause_id);
                         } else {
-                            "{format_size(job.bytes_done)}/{format_size(job.bytes_total)}"
+                            s.pause_job(&pause_id);
                         }
-                    }
-                    div { class: "queue-row-bar", ProgressBar { percent: job_pct(&job) } }
+                    },
+                    if paused { "▶" } else { "‖" }
                 }
+            }
+            div { class: "xfer-track",
+                div {
+                    class: "{fill_class(proto)}",
+                    style: "width: {pct:.1}%",
+                }
+            }
+            div { class: "xfer-foot",
+                span { "{route}" }
+                span { "{foot_right}" }
             }
         }
-        JobState::Waiting => {
-            let cancel_id = job.id.clone();
-            rsx! {
-                div { class: "queue-row",
-                    span { class: "col-dir" }
-                    span { class: "col-qfile dim", "{job.name}" }
-                    span { class: "col-qhost dim", "{host}:{mock::dir_of(&job.remote_path)}" }
-                    span {
-                        class: "col-qrate",
-                        class: if host_down { "warn-text" } else { "dim" },
-                        if host_down { "host down" } else { "waiting" }
-                    }
-                    span {
-                        class: "col-qeta cancel",
-                        onclick: move |_| { let mut s = store; s.cancel_job(&cancel_id); },
-                        "cancel"
-                    }
-                    span { class: "col-qprog dim", "0/{format_size(job.bytes_total)}" }
-                }
-            }
-        }
-        JobState::Failed => {
-            let retry_id = job.id.clone();
-            let skip_id = job.id.clone();
-            rsx! {
-            div { class: "queue-row",
-                span { class: "col-dir error-text", "{arrow}" }
-                span { class: "col-qfile", "{job.name}" }
-                span { class: "col-qhost", "{host}:{mock::dir_of(&job.remote_path)}" }
-                span {
-                    class: "col-qrate retry",
-                    onclick: move |_| { let mut s = store; s.retry_job(&retry_id); },
-                    "retry"
-                }
-                span {
-                    class: "col-qeta skip",
-                    onclick: move |_| { let mut s = store; s.skip_job(&skip_id); },
-                    "skip"
-                }
-                span { class: "col-qprog error-text", "{format_size(job.bytes_done)}/{format_size(job.bytes_total)}" }
-                div { class: "queue-error-line",
-                    "{job.message.clone().unwrap_or_default()} · attempt {job.attempt} of {job.max_attempts} at {error_time(job.finished_at)}"
-                }
-            }
-            }
-        }
-        JobState::Done => rsx! {
-            div { class: "queue-row done",
-                span { class: "col-dir" }
-                span { class: "col-qfile done-name", "{job.name}" }
-                span { class: "col-qhost", "{host}:{mock::dir_of(&job.remote_path)}" }
-                span { class: "col-qrate" }
-                span { class: "col-qeta" }
-                span { class: "col-qprog done-name",
-                    {
-                        if job.is_tree && job.files_failed > 0 {
-                            format!("{} of {} failed", job.files_failed, job.files_total)
-                        } else if let Some(method) = job.verify_method {
-                            method.queue_label(job.verified).to_string()
-                        } else if job.verified == Some(true) {
-                            "verified".into()
-                        } else {
-                            "done".into()
-                        }
-                    }
-                }
-            }
-        },
-        JobState::Paused => rsx! {
-            div { class: "queue-row",
-                span { class: "col-dir" }
-                span { class: "col-qfile", "{job.name}" }
-                span { class: "col-qhost", "{host}:{mock::dir_of(&job.remote_path)}" }
-                span {
-                    class: "col-qrate",
-                    onclick: move |_| { let mut s = store; s.resume_job(&job.id); },
-                    "resume"
-                }
-                span { class: "col-qeta", "—" }
-                span { class: "col-qprog dim", "{format_size(job.bytes_done)}/{format_size(job.bytes_total)}" }
-                div { class: "queue-row-bar", ProgressBar { percent: job_pct(&job) } }
-            }
-        },
-    }
-}
-
-/// HH:MM from the job's finish time (local time, like every other timestamp).
-fn error_time(secs: Option<i64>) -> String {
-    match secs {
-        Some(s) => format_mtime(s)
-            .split_whitespace()
-            .nth(1)
-            .unwrap_or("--:--")
-            .to_string(),
-        None => "--:--".to_string(),
     }
 }
 
 #[component]
-fn QueueFooter() -> Element {
+fn QueuedCard(job: Job) -> Element {
     let store = use_store();
-    let up: u64 = store
-        .jobs
-        .read()
-        .iter()
-        .filter(|j| j.direction == Direction::Down)
-        .map(|j| j.bytes_done)
-        .sum();
-    let down: u64 = store
-        .jobs
-        .read()
-        .iter()
-        .filter(|j| j.direction == Direction::Up)
-        .map(|j| j.bytes_done)
-        .sum();
+    let host_down = store.job_host_unreachable(&job.host_id);
+    let status = if host_down { "host down" } else { "waiting" };
+    let arrow = job.direction.arrow();
+
     rsx! {
-        div { class: "queue-footer",
-            span { "session 4h 12m" }
-            span { "up {format_size(up)} · down {format_size(down)}" }
-            span { "0 retrans · 0 timeouts" }
+        div { class: "xfer-flat",
+            span { class: "xfer-flat-dir", "{arrow}" }
+            span { class: "xfer-flat-name", "{job.name}" }
+            span { class: "xfer-flat-meta", "{format_size(job.bytes_total)} · {status}" }
+        }
+    }
+}
+
+#[component]
+fn FinishedCard(job: Job) -> Element {
+    let store = use_store();
+    let failed = job.state == JobState::Failed;
+    let retry_id = job.id.clone();
+    let reason = job.message.clone().unwrap_or_else(|| "failed".into());
+    let arrow = job.direction.arrow();
+    let right = if failed {
+        reason
+    } else {
+        format!(
+            "{} · {}",
+            format_size(job.bytes_total),
+            finish_time(job.finished_at)
+        )
+    };
+
+    rsx! {
+        div { class: "xfer-flat",
+            span { class: "xfer-flat-dir", "{arrow}" }
+            span {
+                class: if failed { "xfer-flat-name" } else { "xfer-flat-name xfer-flat-done" },
+                "{job.name}"
+            }
+            if failed {
+                span { class: "xfer-flat-meta xfer-flat-err", "{right}" }
+                span {
+                    class: "xfer-retry",
+                    onclick: move |_| { let mut s = store; s.retry_job(&retry_id); },
+                    "Retry"
+                }
+            } else {
+                span { class: "xfer-flat-meta", "{right}" }
+            }
         }
     }
 }

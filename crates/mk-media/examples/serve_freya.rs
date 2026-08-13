@@ -40,9 +40,7 @@ async fn main() {
 
     let host_for_factory = host.clone();
     let pool: Arc<ConnectionPool> = Arc::new(ConnectionPool::new(
-        move |_: &Host| -> Arc<dyn VfsBackend> {
-            Arc::new(NfsBackend::for_export(ADDR, EXPORT))
-        },
+        move |_: &Host| -> Arc<dyn VfsBackend> { Arc::new(NfsBackend::for_export(ADDR, EXPORT)) },
     ));
     let resolve: HostResolver = Arc::new(move |id| {
         if id == "freya-anime" {

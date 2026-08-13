@@ -863,6 +863,20 @@ body {
   background: var(--press-row);
 }
 
+.place-row.selected {
+  background: var(--accent-wash);
+}
+
+.recent-path {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .place-count {
   margin-left: auto;
   font-family: var(--font-mono);
@@ -1411,6 +1425,67 @@ body {
   color: var(--error);
 }
 
+.dialog-wide {
+  width: min(560px, calc(100vw - 48px));
+}
+
+.dialog-hint-wrap {
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+.dialog-textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border-ctl);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.action-sheet {
+  width: min(400px, calc(100vw - 48px));
+}
+
+.action-sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.action-sheet-btn {
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: 11px;
+  border: 1px solid var(--border-ctl);
+  background: var(--bezel);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.action-sheet-btn:active {
+  background: var(--press-row);
+}
+
+.action-sheet-btn:disabled {
+  color: var(--text-30);
+  cursor: default;
+}
+
+.action-sheet-danger {
+  color: var(--error);
+  border-color: var(--error-border);
+}
+
 /* E1-S4: progress fill moves linearly with data, never eased. */
 .progress.fill,
 .progress.track {
@@ -1470,12 +1545,37 @@ body {
 .queue-header {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 9px 16px;
-  border-bottom: 1px solid var(--hairline);
-  font-family: var(--font-mono);
-  font-size: 11px;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 8px 40px 18px;
   flex: none;
+}
+
+.xfer-back {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-ctl);
+  border-radius: 11px;
+  background: var(--bezel);
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.xfer-back:active {
+  background: var(--press-row);
+}
+
+.xfer-title-block {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  min-width: 0;
 }
 
 .queue-title {
@@ -1490,6 +1590,30 @@ body {
   color: var(--text-70);
   font-family: var(--font-mono);
   font-size: 14px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.xfer-hdr-btn {
+  height: 48px;
+  padding: 0 20px;
+  border-radius: 11px;
+  border: 1px solid var(--border-ctl);
+  background: var(--bezel);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  flex: none;
+}
+
+.xfer-hdr-btn-muted {
+  color: var(--text-70);
+}
+
+.xfer-hdr-btn:active {
+  background: var(--press-row);
 }
 
 .queue-body {
@@ -1498,147 +1622,213 @@ body {
   min-height: 0;
 }
 
-.queue-table {
+.xfer-list {
   flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 8px;
   min-width: 0;
-  overflow: hidden;
-}
-
-.queue-rows {
-  flex: 1;
   overflow-y: auto;
-  min-height: 0;
+  padding: 0 40px 24px;
 }
 
-/* Queue columns: DIR 18 / FILE flex / HOST·PATH 150 / RATE 58 / ETA 54 /
-   PROGRESS 70 (E7-S2). */
-.col-dir {
-  width: 18px;
-  flex: none;
-  text-align: center;
+.xfer-card {
+  background: var(--bezel);
+  border: 1px solid var(--border-ctl);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
 }
 
-.col-qfile {
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--text);
-}
-
-.col-qhost {
-  width: 150px;
-  flex: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-45);
-}
-
-.col-qrate {
-  width: 58px;
-  flex: none;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--text-60);
-}
-
-.col-qeta {
-  width: 54px;
-  flex: none;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--text-60);
-}
-
-.col-qprog {
-  width: 70px;
-  flex: none;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--text-60);
-  text-align: right;
-}
-
-.queue-row {
+.xfer-top {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 7px 16px;
-  position: relative;
+  min-width: 0;
 }
 
-.queue-row.active {
+.xfer-badge {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 5px;
+  letter-spacing: 0.02em;
+}
+
+.xfer-badge-sftp {
+  color: var(--accent);
   background: var(--accent-wash);
 }
 
-.queue-row-bar {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 3px;
+.xfer-badge-nfs {
+  color: var(--warn);
+  background: var(--warn-wash);
 }
 
-.queue-row .retry,
-.queue-row .skip,
-.queue-row .cancel {
-  cursor: pointer;
-  color: var(--error);
+.xfer-badge-muted {
+  color: var(--text-45);
+  background: var(--control);
 }
 
-.queue-row .retry:active,
-.queue-row .skip:active,
-.queue-row .cancel:active {
-  background: var(--press-chip);
+.xfer-name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.queue-error-line {
-  position: absolute;
-  left: 46px;
-  top: 100%;
-  margin-top: -14px;
+.xfer-name-queued {
+  font-weight: 500;
+}
+
+.xfer-name-done {
+  font-weight: 500;
+  color: var(--text-70);
+}
+
+.xfer-meta {
+  flex: none;
   font-family: var(--font-mono);
-  font-size: 9.5px;
-  color: var(--error);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-70);
   white-space: nowrap;
 }
 
-.queue-group {
-  padding: 10px 16px 4px;
+.xfer-meta-dim {
+  color: var(--text-45);
+}
+
+.xfer-pause {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  margin-left: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-ctl);
+  background: transparent;
+  color: var(--text-70);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.xfer-pause:active {
+  background: var(--press-row);
+}
+
+.xfer-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--progress-track);
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.xfer-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.xfer-fill-sftp {
+  background: var(--accent);
+}
+
+.xfer-fill-nfs {
+  background: var(--warn);
+}
+
+.xfer-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 7px;
   font-family: var(--font-mono);
-  font-size: 9.5px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--text-45);
+}
+
+.xfer-foot span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.xfer-section {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-30);
-  border-top: 1px solid var(--hairline);
+  color: var(--text-45);
+  margin: 18px 2px 4px;
 }
 
-.queue-row.done .done-name {
-  color: var(--text-42);
-}
-
-.queue-row.done .col-qfile {
-  color: var(--text-25);
-}
-
-.queue-footer {
+.xfer-flat {
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 8px 16px;
-  border-top: 1px solid var(--hairline);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-35);
+  gap: 14px;
+  min-height: 48px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.xfer-flat-dir {
   flex: none;
+  width: 16px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-45);
+}
+
+.xfer-flat-name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.xfer-flat-done {
+  color: var(--text-70);
+}
+
+.xfer-flat-meta {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-45);
+  white-space: nowrap;
+}
+
+.xfer-flat-err {
+  color: var(--error);
+}
+
+.xfer-retry {
+  flex: none;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.xfer-retry:active {
+  opacity: 0.7;
 }
 
 /* --- Throughput panel (E7-S5, 296px) --- */
@@ -2560,8 +2750,10 @@ body {
     flex-direction: column;
   }
 
-  .queue-table {
-    width: 100%;
+  .queue-header,
+  .xfer-list {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
 

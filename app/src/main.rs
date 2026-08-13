@@ -224,6 +224,11 @@ impl FsBackend for BackendAdapter {
             .review(id_or_host);
         Ok(())
     }
+    async fn disconnect(&self, host: &mk_core::host::Host) -> Result<(), String> {
+        self.pool.drop_host(&host.id).await;
+        Ok(())
+    }
+
     fn remove_host_key(&self, id_or_host: &str) -> Result<(), String> {
         self.known_hosts
             .lock()
@@ -269,10 +274,16 @@ impl mk_vfs::VfsBackend for UnsupportedBackend {
     ) -> Result<Vec<u8>, mk_vfs::VfsError> {
         Err(unsupported())
     }
-    async fn open_read(&self, _path: &str) -> Result<Box<dyn mk_vfs::ReadStream>, mk_vfs::VfsError> {
+    async fn open_read(
+        &self,
+        _path: &str,
+    ) -> Result<Box<dyn mk_vfs::ReadStream>, mk_vfs::VfsError> {
         Err(unsupported())
     }
-    async fn open_write(&self, _path: &str) -> Result<Box<dyn mk_vfs::WriteStream>, mk_vfs::VfsError> {
+    async fn open_write(
+        &self,
+        _path: &str,
+    ) -> Result<Box<dyn mk_vfs::WriteStream>, mk_vfs::VfsError> {
         Err(unsupported())
     }
     async fn mkdir(&self, _path: &str) -> Result<(), mk_vfs::VfsError> {

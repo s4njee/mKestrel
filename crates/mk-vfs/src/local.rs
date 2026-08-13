@@ -127,7 +127,11 @@ impl VfsBackend for LocalBackend {
         self.open_write_at(path, 0).await
     }
 
-    async fn open_write_at(&self, path: &str, offset: u64) -> Result<Box<dyn WriteStream>, VfsError> {
+    async fn open_write_at(
+        &self,
+        path: &str,
+        offset: u64,
+    ) -> Result<Box<dyn WriteStream>, VfsError> {
         use std::io::Seek;
         let mut file = fs::OpenOptions::new()
             .write(true)
@@ -338,7 +342,10 @@ mod tests {
         f.write_all(&(0u8..=200).collect::<Vec<_>>()).unwrap();
 
         let backend = LocalBackend;
-        let mut r = backend.open_read(&format!("{root_s}/data.bin")).await.unwrap();
+        let mut r = backend
+            .open_read(&format!("{root_s}/data.bin"))
+            .await
+            .unwrap();
         let pos = r.seek(100).await.unwrap();
         assert_eq!(pos, 100);
         let mut buf = [0u8; 5];

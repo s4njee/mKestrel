@@ -73,11 +73,11 @@ impl client::Handler for ClientHandler {
     ) -> Result<bool, Self::Error> {
         let fingerprint = fingerprint_sha256(server_public_key);
         let key_type = server_public_key.algorithm().to_string();
-        let result = self
-            .known_hosts
-            .lock()
-            .unwrap()
-            .check(&self.host, self.port, server_public_key);
+        let result =
+            self.known_hosts
+                .lock()
+                .unwrap()
+                .check(&self.host, self.port, server_public_key);
         match result {
             KnownHostResult::Trusted => Ok(true),
             KnownHostResult::NewHost { .. } => {
@@ -106,18 +106,16 @@ impl client::Handler for ClientHandler {
                     .unwrap()
                     .note_changed(&self.host, self.port, &new);
                 Err(std::io::Error::other(encode_changed(
-                    &self.host,
-                    self.port,
-                    &key_type,
-                    &old,
-                    &new,
+                    &self.host, self.port, &key_type, &old, &new,
                 ))
                 .into())
             }
-            KnownHostResult::Revoked { fingerprint } => Err(std::io::Error::other(
-                encode_revoked(&self.host, self.port, &fingerprint),
-            )
-            .into()),
+            KnownHostResult::Revoked { fingerprint } => {
+                Err(
+                    std::io::Error::other(encode_revoked(&self.host, self.port, &fingerprint))
+                        .into(),
+                )
+            }
         }
     }
 }
@@ -178,10 +176,9 @@ impl SftpBackend {
             port: host.port,
             strict: self.strict.clone(),
         };
-        let mut session =
-            client::connect(config, (host.address.as_str(), host.port), handler)
-                .await
-                .map_err(|e| map_connect_error(&host.address, e))?;
+        let mut session = client::connect(config, (host.address.as_str(), host.port), handler)
+            .await
+            .map_err(|e| map_connect_error(&host.address, e))?;
 
         match &self.auth {
             SftpAuth::Password { .. } | SftpAuth::VaultPassword { .. } => {
@@ -344,6 +341,7 @@ impl VfsBackend for SftpBackend {
             .await
             .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")).with_path(path))?;
         Ok(read_dir
+            .filter(|de| !crate::is_dot_dir(&de.file_name()))
             .map(|de| to_entry(&de.file_name(), &de.metadata()))
             .collect())
     }
@@ -393,7 +391,11 @@ impl VfsBackend for SftpBackend {
         self.open_write_at(path, 0).await
     }
 
-    async fn open_write_at(&self, path: &str, offset: u64) -> Result<Box<dyn WriteStream>, VfsError> {
+    async fn open_write_at(
+        &self,
+        path: &str,
+        offset: u64,
+    ) -> Result<Box<dyn WriteStream>, VfsError> {
         let mut guard = self.lock_session(path).await?;
         let conn = guard.as_mut().unwrap();
         let flags = if offset == 0 {
@@ -500,7 +502,10 @@ impl VfsBackend for SftpBackend {
                     ProbeLine::Accent(format!("auth accepted · {} readable", host.initial_path)),
                 ],
             }),
-            Err(e) if e.kind == VfsErrorKind::HostKeyUnknown || e.kind == VfsErrorKind::HostKeyChanged => {
+            Err(e)
+                if e.kind == VfsErrorKind::HostKeyUnknown
+                    || e.kind == VfsErrorKind::HostKeyChanged =>
+            {
                 Err(e)
             }
             Err(e) => Err(e),
@@ -521,11 +526,10 @@ impl VfsBackend for SftpBackend {
     async fn remote_digest(&self, path: &str) -> Result<Option<String>, VfsError> {
         let mut guard = self.lock_session(path).await?;
         let conn = guard.as_mut().unwrap();
-        let mut channel = conn
-            .handle
-            .channel_open_session()
-            .await
-            .map_err(|e| VfsError::new(VfsErrorKind::Protocol, e.to_string()).with_path(path))?;
+        let mut channel =
+            conn.handle.channel_open_session().await.map_err(|e| {
+                VfsError::new(VfsErrorKind::Protocol, e.to_string()).with_path(path)
+            })?;
         let cmd = format!("sha256sum -- {}", shell_single_quote(path));
         channel
             .exec(true, cmd)
@@ -627,7 +631,11 @@ mod tests {
                 passphrase: None,
             },
             freya_host(),
-            Arc::new(std::sync::Mutex::new(crate::known_hosts::KnownHostsStore::new(PathBuf::from("/tmp/known_hosts_test.json")))),
+            Arc::new(std::sync::Mutex::new(
+                crate::known_hosts::KnownHostsStore::new(PathBuf::from(
+                    "/tmp/known_hosts_test.json",
+                )),
+            )),
             Arc::new(AtomicBool::new(false)),
         )
     }

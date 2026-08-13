@@ -368,9 +368,7 @@ async fn handle_local_symlink(
         SymlinkPolicy::Skip => {}
         SymlinkPolicy::Recreate => {
             if let Ok(tgt) = std::fs::read_link(&src) {
-                let _ = backend
-                    .symlink(&tgt.to_string_lossy(), remote)
-                    .await;
+                let _ = backend.symlink(&tgt.to_string_lossy(), remote).await;
             }
         }
         SymlinkPolicy::Follow => {

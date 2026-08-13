@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 
+use mk_core::bookmark::Bookmark;
 use mk_core::fixtures::MIB;
 use mk_core::fmt::{
     format_duration, format_mode_full, format_mode_octal, format_mode_symbolic, format_mtime,
@@ -13,11 +14,12 @@ use mk_core::fmt::{
 };
 use mk_core::host::{Entry, EntryKind, Host, HostStatus, Protocol};
 use mk_core::job::{Direction, Job, JobState};
+use mk_core::recent::{folder_name, RecentPath};
 use mk_core::settings::SortKey;
 
 use crate::components::*;
 use crate::mock;
-use crate::store::{use_store, Dialog, Listing, SettingsSection};
+use crate::store::{use_store, Dialog, Listing, Place, SettingsSection};
 
 fn classes(parts: &[&str]) -> String {
     let mut s = String::new();
@@ -217,6 +219,12 @@ fn PathBar() -> Element {
     let filter = store.filter.read().clone();
     let badge = store.queue_badge();
     let sort_label = store.sort_label();
+    let place = *store.place.read();
+    let place_title = match place {
+        Place::Recent => Some("Recent"),
+        Place::Bookmarks => Some("Bookmarks"),
+        Place::Listing => None,
+    };
     // (segment text, full path, is current) precomputed so the rsx body stays
     // declarative (no `let` inside the `for` body).
     let crumbs: Vec<(String, String, bool)> = segs
@@ -231,21 +239,25 @@ fn PathBar() -> Element {
     rsx! {
         div { class: "path-bar",
             div { class: "path-crumbs",
-                span {
-                    class: "crumb-host",
-                    onclick: move |_| { let mut s = store; s.show_connections(); },
-                    "{host.name}:"
-                }
-                for (seg, path, current) in crumbs {
+                if let Some(title) = place_title {
+                    span { class: "crumb-host", "{title}" }
+                } else {
                     span {
-                        class: if current { "crumb-current" } else { "crumb-segment" },
-                        onclick: move |_| {
-                            if !current {
-                                let mut s = store;
-                                s.navigate_to(path.clone());
-                            }
-                        },
-                        "/{seg}"
+                        class: "crumb-host",
+                        onclick: move |_| { let mut s = store; s.show_connections(); },
+                        "{host.name}:"
+                    }
+                    for (seg, path, current) in crumbs {
+                        span {
+                            class: if current { "crumb-current" } else { "crumb-segment" },
+                            onclick: move |_| {
+                                if !current {
+                                    let mut s = store;
+                                    s.navigate_to(path.clone());
+                                }
+                            },
+                            "/{seg}"
+                        }
                     }
                 }
             }
@@ -262,13 +274,15 @@ fn PathBar() -> Element {
                         *s.filter.write() = e.value();
                     },
                 }
-                span {
-                    class: "toolbar-verb",
-                    onclick: move |_| { let mut s = store; s.cycle_sort(); },
-                    "{sort_label}"
+                if place_title.is_none() {
+                    span {
+                        class: "toolbar-verb",
+                        onclick: move |_| { let mut s = store; s.cycle_sort(); },
+                        "{sort_label}"
+                    }
+                    span { class: "toolbar-verb active", "LIST" }
+                    span { class: "toolbar-verb dim", "GRID" }
                 }
-                span { class: "toolbar-verb active", "LIST" }
-                span { class: "toolbar-verb dim", "GRID" }
                 span { class: "toolbar-verb accent", onclick: move |_| { let mut s = store; s.show_queue(); }, "QUEUE {badge}" }
             }
         }
@@ -284,6 +298,19 @@ fn HostsRail() -> Element {
     let store = use_store();
     let hosts = store.hosts.read().clone();
     let selected = store.selected_host_id.read().clone();
+    let place = *store.place.read();
+    let recent_count = store
+        .recents
+        .read()
+        .iter()
+        .filter(|r| hosts.iter().any(|h| h.id == r.host_id))
+        .count();
+    let bookmark_count = store
+        .bookmarks
+        .read()
+        .iter()
+        .filter(|b| hosts.iter().any(|h| h.id == b.host_id))
+        .count();
     let active = store
         .jobs
         .read()
@@ -296,14 +323,28 @@ fn HostsRail() -> Element {
             div { class: "mounts-scroll",
                 div { class: "rail-section-label", "MOUNTS" }
                 for host in &hosts {
-                    HostRow { host: host.clone(), selected: host.id == selected }
+                    HostRow {
+                        host: host.clone(),
+                        selected: place == Place::Listing && host.id == selected,
+                    }
                 }
             }
             div { class: "rail-section-label", "PLACES" }
-            div { class: "place-row", span { "Recent" } }
-            div { class: "place-row",
+            div {
+                class: if place == Place::Recent { "place-row selected" } else { "place-row" },
+                onclick: move |_| { let mut s = store; s.show_recent(); },
+                span { "Recent" }
+                if recent_count > 0 {
+                    span { class: "place-count", "{recent_count}" }
+                }
+            }
+            div {
+                class: if place == Place::Bookmarks { "place-row selected" } else { "place-row" },
+                onclick: move |_| { let mut s = store; s.show_bookmarks(); },
                 span { "Bookmarks" }
-                span { class: "place-count", "7" }
+                if bookmark_count > 0 {
+                    span { class: "place-count", "{bookmark_count}" }
+                }
             }
             div {
                 class: "place-row",
@@ -380,6 +421,11 @@ fn RailCapacity() -> Element {
 #[component]
 fn FileTable() -> Element {
     let store = use_store();
+    match *store.place.read() {
+        Place::Recent => return rsx! { RecentTable {} },
+        Place::Bookmarks => return rsx! { BookmarkTable {} },
+        Place::Listing => {}
+    }
     let listing = store.listing.read().clone();
 
     match listing {
@@ -395,22 +441,34 @@ fn FileTable() -> Element {
             let listing_error = store.listing_error.read().clone();
             let parent = mock::parent_of(&store.cwd.read());
             let parent_label = format!("../{}", mock::base_name(&parent));
+            let show_parent =
+                !store.at_mount_root() && store.selected_host().status != HostStatus::Idle;
+            let idle = store.selected_host().status == HostStatus::Idle;
             rsx! {
                 div { class: "file-table",
                     TableHeader {}
                     div { class: "table-body",
                         // `..` parent row (E5-S3): tapping navigates up.
-                        div {
-                            class: "row",
-                            onclick: move |_| { let mut s = store; s.go_up(); },
-                            div { class: "col-check" }
-                            div { class: "col-tile" }
-                            span { class: "col-name dotfile-name", "{parent_label}" }
-                            span { class: "col-size" }
-                            span { class: "col-mtime" }
-                            span { class: "col-mode" }
+                        // Hidden at the mount root so a denied parent cannot
+                        // replace the listing.
+                        if show_parent {
+                            div {
+                                class: "row",
+                                onclick: move |_| { let mut s = store; s.go_up(); },
+                                div { class: "col-check" }
+                                div { class: "col-tile" }
+                                span { class: "col-name dotfile-name", "{parent_label}" }
+                                span { class: "col-size" }
+                                span { class: "col-mtime" }
+                                span { class: "col-mode" }
+                            }
                         }
-                        if let Some(err) = listing_error {
+                        if idle {
+                            div { class: "state-box",
+                                div { class: "state-title", "not mounted" }
+                                div { class: "state-sub", "tap the host in the rail to reconnect" }
+                            }
+                        } else if let Some(err) = listing_error {
                             div { class: "state-box",
                                 div { class: "state-title", "permission denied" }
                                 div { class: "state-sub", "{err}" }
@@ -435,6 +493,23 @@ fn FileTable() -> Element {
 #[component]
 fn TableHeader() -> Element {
     let store = use_store();
+    if matches!(*store.place.read(), Place::Recent | Place::Bookmarks) {
+        let when = if *store.place.read() == Place::Recent {
+            "VISITED"
+        } else {
+            "SAVED"
+        };
+        return rsx! {
+            div { class: "table-header",
+                div { class: "col-check" }
+                div { class: "col-tile" }
+                span { class: "col-name t-col-header", "NAME" }
+                span { class: "col-size t-col-header", "HOST" }
+                span { class: "col-mtime t-col-header", "{when}" }
+                span { class: "col-mode t-col-header", "PROTO" }
+            }
+        };
+    }
     let name_caret = store.header_caret(SortKey::Name);
     let size_caret = store.header_caret(SortKey::Size);
     let mtime_caret = store.header_caret(SortKey::Mtime);
@@ -452,6 +527,162 @@ fn TableHeader() -> Element {
 }
 
 #[component]
+fn RecentTable() -> Element {
+    let store = use_store();
+    let recents = store.visible_recents();
+    let filter = store.filter.read().clone();
+    let empty = recents.is_empty();
+
+    rsx! {
+        div { class: "file-table",
+            TableHeader {}
+            div { class: "table-body",
+                if empty {
+                    div { class: "state-box",
+                        div { class: "state-title",
+                            if filter.is_empty() { "no recent folders" } else { "no matching folders" }
+                        }
+                        if filter.is_empty() {
+                            div { class: "state-sub", "folders you open will show up here" }
+                        }
+                    }
+                } else {
+                    for item in recents {
+                        RecentRow { item: item, key: "{item.host_id}:{item.path}" }
+                    }
+                }
+            }
+            TableFooter {}
+        }
+    }
+}
+
+#[component]
+fn RecentRow(item: RecentPath) -> Element {
+    let store = use_store();
+    let hosts = store.hosts.read();
+    let host = hosts.iter().find(|h| h.id == item.host_id).cloned();
+    let host_name = host
+        .as_ref()
+        .map(|h| h.name.clone())
+        .unwrap_or_else(|| item.host_id.clone());
+    let proto = host.as_ref().map(|h| h.protocol.as_str()).unwrap_or("—");
+    let name = folder_name(&item.path).to_string();
+    let path = item.path.clone();
+    let host_id = item.host_id.clone();
+
+    rsx! {
+        div {
+            class: "row",
+            onclick: move |_| {
+                let mut s = store;
+                s.open_recent(host_id.clone(), path.clone());
+            },
+            div { class: "col-check" }
+            div { class: "tile tile-accent", "DIR" }
+            span { class: "col-name",
+                div { class: "t-table-name name-dir",
+                    "{name}/"
+                    span { class: "row-chevron", "›" }
+                }
+                div { class: "recent-path", "{item.path}" }
+            }
+            span { class: "col-size t-data-cell", "{host_name}" }
+            span { class: "col-mtime t-data-cell", "{format_mtime(item.visited_at)}" }
+            span { class: "col-mode t-mode", "{proto}" }
+        }
+    }
+}
+
+#[component]
+fn BookmarkTable() -> Element {
+    let store = use_store();
+    let bookmarks = store.visible_bookmarks();
+    let filter = store.filter.read().clone();
+    let empty = bookmarks.is_empty();
+
+    rsx! {
+        div { class: "file-table",
+            TableHeader {}
+            div { class: "table-body",
+                if empty {
+                    div { class: "state-box",
+                        div { class: "state-title",
+                            if filter.is_empty() { "no bookmarks" } else { "no matching bookmarks" }
+                        }
+                        if filter.is_empty() {
+                            div { class: "state-sub", "long-press a file or folder to pin it here" }
+                        }
+                    }
+                } else {
+                    for item in bookmarks {
+                        BookmarkRow { item: item, key: "{item.host_id}:{item.path}" }
+                    }
+                }
+            }
+            TableFooter {}
+        }
+    }
+}
+
+#[component]
+fn BookmarkRow(item: Bookmark) -> Element {
+    let store = use_store();
+    let hosts = store.hosts.read();
+    let host = hosts.iter().find(|h| h.id == item.host_id).cloned();
+    let host_name = host
+        .as_ref()
+        .map(|h| h.name.clone())
+        .unwrap_or_else(|| item.host_id.clone());
+    let proto = host.as_ref().map(|h| h.protocol.as_str()).unwrap_or("—");
+    let name = folder_name(&item.path).to_string();
+    let path = item.path.clone();
+    let host_id = item.host_id.clone();
+    let kind = item.kind;
+    let is_dir = kind == EntryKind::Dir;
+    let tile = if is_dir { "DIR" } else { "FILE" };
+    let tile_cls = if is_dir {
+        "tile-accent"
+    } else {
+        "tile-secondary"
+    };
+    let name_cls = if is_dir {
+        "t-table-name name-dir"
+    } else {
+        "t-table-name"
+    };
+    let name_cell = if is_dir {
+        format!("{name}/")
+    } else {
+        name.clone()
+    };
+
+    rsx! {
+        div {
+            class: "row",
+            onclick: move |_| {
+                let mut s = store;
+                s.open_bookmark(host_id.clone(), path.clone(), kind);
+            },
+            div { class: "col-check" }
+            div { class: "tile {tile_cls}", "{tile}" }
+            span { class: "col-name",
+                div { class: "{name_cls}",
+                    "{name_cell}"
+                    if is_dir {
+                        span { class: "row-chevron", "›" }
+                    }
+                }
+                div { class: "recent-path", "{item.path}" }
+            }
+            span { class: "col-size t-data-cell", "{host_name}" }
+            span { class: "col-mtime t-data-cell", "{format_mtime(item.added_at)}" }
+            span { class: "col-mode t-mode", "{proto}" }
+        }
+    }
+}
+
+#[component]
 fn EntryRow(entry: Entry) -> Element {
     let store = use_store();
     let name = entry.name.clone();
@@ -461,7 +692,7 @@ fn EntryRow(entry: Entry) -> Element {
     let is_dir = entry.kind == EntryKind::Dir;
     let selected = store.is_selected(&name);
     let downloading = store.running_down_for(&name);
-    // Long-press → details sheet. `lp_fired` suppresses the tap that follows.
+    // Long-press → action modal. `lp_fired` suppresses the tap that follows.
     let lp_cancel = use_signal(|| false);
     let lp_fired = use_signal(|| false);
 
@@ -661,6 +892,22 @@ fn SkeletonRows() -> Element {
 #[component]
 fn TableFooter() -> Element {
     let store = use_store();
+    if *store.place.read() == Place::Recent {
+        let n = store.visible_recents().len();
+        return rsx! {
+            div { class: "table-footer",
+                span { "{n} folders" }
+            }
+        };
+    }
+    if *store.place.read() == Place::Bookmarks {
+        let n = store.visible_bookmarks().len();
+        return rsx! {
+            div { class: "table-footer",
+                span { "{n} bookmarks" }
+            }
+        };
+    }
     let (count, bytes) = store.aggregate();
     let sel_count = store.selected_count();
     let sel_bytes = store.selected_bytes();

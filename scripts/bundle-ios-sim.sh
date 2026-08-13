@@ -47,6 +47,20 @@ cat > "${STAGE}/Info.plist" <<PLIST
   <key>LSRequiresIPhoneOS</key><true/>
   <key>MinimumOSVersion</key><string>15.0</string>
   <key>UIDeviceFamily</key><array><integer>1</integer><integer>2</integer></array>
+  <key>CFBundleIconName</key><string>AppIcon</string>
+  <key>CFBundleIcons</key>
+  <dict>
+    <key>CFBundlePrimaryIcon</key>
+    <dict>
+      <key>CFBundleIconName</key><string>AppIcon</string>
+      <key>CFBundleIconFiles</key>
+      <array>
+        <string>AppIcon</string>
+      </array>
+    </dict>
+  </dict>
+  <key>UIFileSharingEnabled</key><true/>
+  <key>LSSupportsOpeningDocumentsInPlace</key><true/>
   <key>UILaunchScreen</key><dict/>
   <key>UIRequiredDeviceCapabilities</key><array><string>arm64</string></array>
   <key>UISupportedInterfaceOrientations</key>
@@ -65,6 +79,9 @@ cat > "${STAGE}/Info.plist" <<PLIST
 </dict>
 </plist>
 PLIST
+
+echo "→ embedding AppIcon…"
+scripts/embed-ios-icon.sh "${STAGE}" iphonesimulator
 
 echo "→ ad-hoc signing ${STAGE}…"
 codesign --force --sign - "${STAGE}"

@@ -296,10 +296,10 @@ impl CachedVault {
     }
 
     fn cache_put(&self, kind: &str, id: &str, value: &str) {
-        self.cache.lock().unwrap().insert(
-            format!("{kind}:{id}"),
-            (value.to_string(), Instant::now()),
-        );
+        self.cache
+            .lock()
+            .unwrap()
+            .insert(format!("{kind}:{id}"), (value.to_string(), Instant::now()));
     }
 
     fn cache_del(&self, kind: &str, id: &str) {

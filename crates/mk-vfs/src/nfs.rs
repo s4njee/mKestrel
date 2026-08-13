@@ -50,9 +50,7 @@ impl NfsBackend {
     pub fn for_mobile_export(address: &str, path: &str) -> Self {
         let root = path.trim_end_matches('/').to_string();
         Self {
-            url: format!(
-                "nfs://{address}{path}?version=3&noresvport=true&rsize=32768&wsize=32768"
-            ),
+            url: format!("nfs://{address}{path}?version=3&noresvport=true&rsize=32768&wsize=32768"),
             root,
             mount: Arc::new(Mutex::new(None)),
         }
@@ -170,6 +168,9 @@ impl VfsBackend for NfsBackend {
         while let Some(entry) = stream.next().await {
             let entry = entry
                 .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")).with_path(path))?;
+            if crate::is_dot_dir(&entry.file_name) {
+                continue;
+            }
             if let Some(attr) = &entry.attr {
                 out.push(to_entry(&entry.file_name, attr));
             }

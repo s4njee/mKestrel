@@ -108,6 +108,14 @@ impl ConnectionPool {
         backend
     }
 
+    /// Close and drop the live session for `id`, if any.
+    pub async fn drop_host(&self, id: &str) {
+        let mut sessions = self.sessions.lock().await;
+        if let Some(entry) = sessions.remove(id) {
+            let _ = entry.backend.disconnect().await;
+        }
+    }
+
     /// Close and drop sessions idle longer than `idle_timeout`.
     pub async fn prune_idle(&self) {
         let now = Instant::now();

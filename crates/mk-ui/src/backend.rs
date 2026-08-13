@@ -120,6 +120,11 @@ pub trait FsBackend: Send + Sync + std::fmt::Debug {
     fn remove_host_key(&self, _id_or_host: &str) -> Result<(), String> {
         Ok(())
     }
+
+    /// Drop the live session for this host (unmount). Default is a no-op.
+    async fn disconnect(&self, _host: &Host) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 /// Fallback backend so the UI can render standalone (empty listings).
@@ -230,7 +235,9 @@ pub fn parse_host_key_error(msg: &str) -> Option<HostKeyPrompt> {
     Some(HostKeyPrompt {
         changed,
         host: field(&line, "host").unwrap_or_default().to_string(),
-        port: field(&line, "port").and_then(|p| p.parse().ok()).unwrap_or(22),
+        port: field(&line, "port")
+            .and_then(|p| p.parse().ok())
+            .unwrap_or(22),
         key_type: field(&line, "type").unwrap_or("ssh-ed25519").to_string(),
         fingerprint: field(&line, "fp")
             .or_else(|| field(&line, "new"))

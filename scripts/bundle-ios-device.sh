@@ -44,6 +44,20 @@ cat > "${STAGE}/Info.plist" <<PLIST
   <key>LSRequiresIPhoneOS</key><true/>
   <key>MinimumOSVersion</key><string>15.0</string>
   <key>UIDeviceFamily</key><array><integer>1</integer><integer>2</integer></array>
+  <key>CFBundleIconName</key><string>AppIcon</string>
+  <key>CFBundleIcons</key>
+  <dict>
+    <key>CFBundlePrimaryIcon</key>
+    <dict>
+      <key>CFBundleIconName</key><string>AppIcon</string>
+      <key>CFBundleIconFiles</key>
+      <array>
+        <string>AppIcon</string>
+      </array>
+    </dict>
+  </dict>
+  <key>UIFileSharingEnabled</key><true/>
+  <key>LSSupportsOpeningDocumentsInPlace</key><true/>
   <key>UILaunchScreen</key><dict/>
 </dict>
 </plist>
@@ -58,6 +72,9 @@ cat > "${STAGE}/entitlements.plist" <<PLIST
   <key>get-task-allow</key><true/>
 </dict></plist>
 PLIST
+
+echo "→ embedding AppIcon…"
+scripts/embed-ios-icon.sh "${STAGE}" iphoneos
 
 # Embed the provisioning profile + sign with the dev identity.
 cp "${PROVISION}" "${STAGE}/embedded.mobileprovision"

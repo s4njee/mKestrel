@@ -243,7 +243,8 @@ impl KnownHostsStore {
         self.entries.iter().any(|e| {
             e.marker == HostMarker::CertAuthority
                 && host_matches(&e.host, host, port)
-                && (e.fingerprint == fingerprint || e.pending_fingerprint.as_deref() == Some(fingerprint))
+                && (e.fingerprint == fingerprint
+                    || e.pending_fingerprint.as_deref() == Some(fingerprint))
         })
     }
 
@@ -513,7 +514,10 @@ fn parse_openssh_line(line: &str) -> Option<KhEntry> {
     let mut hasher = sha2::Sha256::new();
     use sha2::Digest;
     hasher.update(&raw);
-    let fp = format!("SHA256:{}", B64.encode(hasher.finalize()).trim_end_matches('='));
+    let fp = format!(
+        "SHA256:{}",
+        B64.encode(hasher.finalize()).trim_end_matches('=')
+    );
     Some(KhEntry {
         id: format!("imported-{}", now_secs()),
         hashed: host_is_hashed(&host),
@@ -630,7 +634,10 @@ mod tests {
             "edge-01 ssh-ed25519 {key}\n@revoked evil ssh-ed25519 {key}\n@cert-authority *.corp ssh-ed25519 {key}\n"
         );
         assert_eq!(store.import_openssh(&text), 3);
-        assert!(store.entries.iter().any(|e| e.marker == HostMarker::Revoked));
+        assert!(store
+            .entries
+            .iter()
+            .any(|e| e.marker == HostMarker::Revoked));
         assert!(store
             .entries
             .iter()

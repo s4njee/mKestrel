@@ -275,7 +275,8 @@ pub async fn download(
                 resolved = find_available_name(&resolved);
             }
             OverwritePolicy::NewerOnly => {
-                if let (Ok(local_meta), Some(remote)) = (tokio::fs::metadata(&resolved).await, &remote_stat)
+                if let (Ok(local_meta), Some(remote)) =
+                    (tokio::fs::metadata(&resolved).await, &remote_stat)
                 {
                     let local_mtime = local_meta
                         .modified()
@@ -296,8 +297,7 @@ pub async fn download(
 
     log::info!("download {remote_path} -> {resolved} (chunk={chunk_bytes})");
     if let Some(parent) = Path::new(&resolved).parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|e| format!("create {}: {e}", parent.display()))?;
+        std::fs::create_dir_all(parent).map_err(|e| format!("create {}: {e}", parent.display()))?;
     }
     let part_path = format!("{resolved}.mkpart");
 
@@ -312,8 +312,7 @@ pub async fn download(
         let remote_changed = expected_remote_mtime
             .zip(remote_mtime)
             .is_some_and(|(exp, got)| exp != got)
-            || expected_remote_size
-                .is_some_and(|exp| exp != remote_size)
+            || expected_remote_size.is_some_and(|exp| exp != remote_size)
             || (remote_size > 0 && partial > remote_size);
         if remote_changed {
             let _ = tokio::fs::remove_file(&part_path).await;
@@ -369,9 +368,10 @@ pub async fn download(
             drop_partial(&part_path, resume_enabled).await;
             return Err("cancelled".into());
         }
-        let n = reader.read(&mut buf).await.map_err(|e| {
-            format!("read {remote_path} @ {done}: {e}")
-        })?;
+        let n = reader
+            .read(&mut buf)
+            .await
+            .map_err(|e| format!("read {remote_path} @ {done}: {e}"))?;
         if n == 0 {
             break;
         }
@@ -412,7 +412,8 @@ pub async fn download(
         files_failed: 0,
     };
     if verify {
-        let (ok, method) = verify_pair(backend, remote_path, &resolved, remote_size.max(done)).await?;
+        let (ok, method) =
+            verify_pair(backend, remote_path, &resolved, remote_size.max(done)).await?;
         outcome.verified = Some(ok);
         outcome.verify_method = Some(method);
     }
@@ -477,11 +478,8 @@ pub async fn upload(
             let remote_changed = expected_remote_mtime
                 .zip(existing.as_ref().map(|e| e.mtime))
                 .is_some_and(|(exp, got)| exp != got)
-                || expected_remote_size.is_some_and(|exp| {
-                    existing
-                        .as_ref()
-                        .is_some_and(|e| e.size_bytes != exp)
-                });
+                || expected_remote_size
+                    .is_some_and(|exp| existing.as_ref().is_some_and(|e| e.size_bytes != exp));
             if remote_changed || entry.size_bytes > local_size {
                 let _ = backend.remove(&part_path).await;
                 notice = Some("remote changed, restarting".into());

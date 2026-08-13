@@ -60,16 +60,6 @@ pub fn sha256_for(name: &str) -> String {
     format!("sha256 {acc:016x}…")
 }
 
-/// A fixture `~/.ssh/config` Host block for the dialog's IMPORT (E8-S2).
-pub fn ssh_config_entry() -> (String, String, String, String) {
-    (
-        "edge-02".into(),
-        "edge-02.fsn1.internal".into(),
-        "deploy".into(),
-        "22".into(),
-    )
-}
-
 /// Directory component of a path (`/Downloads/file.mkv` -> `/Downloads`).
 pub fn dir_of(path: &str) -> String {
     match path.rfind('/') {

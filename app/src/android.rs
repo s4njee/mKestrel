@@ -39,7 +39,9 @@ pub fn ensure_public_downloads() {
 
 /// Tell MediaStore about a newly written file so Files indexes it immediately.
 pub fn scan_file(path: &Path) {
-    let Some(path_str) = path.to_str() else { return };
+    let Some(path_str) = path.to_str() else {
+        return;
+    };
     if let Err(e) = with_jni(|env, ctx| scan_file_jni(env, ctx, path_str)) {
         log::warn!("android: media scan {path_str}: {e}");
     }
@@ -108,7 +110,9 @@ fn open_manage_all_files(env: &mut jni::JNIEnv, ctx: JObject) -> Result<(), Stri
         .l()
         .map_err(|e| e.to_string())?;
 
-    let uri_class = env.find_class("android/net/Uri").map_err(|e| e.to_string())?;
+    let uri_class = env
+        .find_class("android/net/Uri")
+        .map_err(|e| e.to_string())?;
     let uri = env
         .call_static_method(
             uri_class,
@@ -133,8 +137,13 @@ fn open_manage_all_files(env: &mut jni::JNIEnv, ctx: JObject) -> Result<(), Stri
         .map_err(|e| e.to_string())?
         .i()
         .map_err(|e| e.to_string())?;
-    env.call_method(&intent, "addFlags", "(I)Landroid/content/Intent;", &[JValue::Int(flag)])
-        .map_err(|e| e.to_string())?;
+    env.call_method(
+        &intent,
+        "addFlags",
+        "(I)Landroid/content/Intent;",
+        &[JValue::Int(flag)],
+    )
+    .map_err(|e| e.to_string())?;
 
     env.call_method(
         &ctx,
@@ -148,7 +157,9 @@ fn open_manage_all_files(env: &mut jni::JNIEnv, ctx: JObject) -> Result<(), Stri
 
 fn scan_file_jni(env: &mut jni::JNIEnv, ctx: JObject, path: &str) -> Result<(), String> {
     let jpath = env.new_string(path).map_err(|e| e.to_string())?;
-    let str_class = env.find_class("java/lang/String").map_err(|e| e.to_string())?;
+    let str_class = env
+        .find_class("java/lang/String")
+        .map_err(|e| e.to_string())?;
     let arr: JObjectArray = env
         .new_object_array(1, str_class, &jpath)
         .map_err(|e| e.to_string())?;

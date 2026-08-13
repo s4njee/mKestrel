@@ -3,11 +3,11 @@
 
 use dioxus::prelude::*;
 
-use mk_core::fmt::format_mode_full;
+use mk_core::fmt::{format_mode_full, format_size};
 use mk_core::host::{AuthMethod, EntryKind, Protocol};
+use mk_core::job::Direction;
 
 use crate::components::*;
-use crate::mock;
 use crate::store::{
     default_port, host_from_draft, use_store, Dialog, HostDraft, ProbeLine, ProbeState, Store,
 };
@@ -52,6 +52,10 @@ fn dialog_tag(d: &Dialog) -> &'static str {
         Dialog::Conflict { .. } => "conflict",
         Dialog::TrustHost { .. } => "trust",
         Dialog::OrphanPartials { .. } => "orphans",
+        Dialog::Disconnect { .. } => "disconnect",
+        Dialog::ConfigNotice { .. } => "config-notice",
+        Dialog::ImportConfig { .. } => "import-config",
+        Dialog::ItemActions { .. } => "item-actions",
     }
 }
 
@@ -63,6 +67,9 @@ fn DialogBody(dialog: Dialog) -> Element {
     if let Dialog::NewHost(draft) = &dialog {
         return rsx! { HostDialog { draft: draft.clone() } };
     }
+    if let Dialog::ItemActions { name } = &dialog {
+        return rsx! { ItemActionsSheet { name: name.clone() } };
+    }
 
     let cancel = move |_| {
         let mut s = store;
@@ -73,8 +80,10 @@ fn DialogBody(dialog: Dialog) -> Element {
         s.submit_dialog();
     };
 
+    let wide = matches!(dialog, Dialog::ImportConfig { .. });
+
     rsx! {
-        div { class: "dialog",
+        div { class: if wide { "dialog dialog-wide" } else { "dialog" },
             {match &dialog {
                 Dialog::Mkdir { name } => rsx! {
                     div { class: "dialog-title", "mkdir" }
@@ -171,15 +180,58 @@ fn DialogBody(dialog: Dialog) -> Element {
                         div { class: "dialog-hint", "{p}" }
                     }
                 },
+                Dialog::Disconnect { name, .. } => rsx! {
+                    div { class: "dialog-title", "disconnect" }
+                    div { class: "dialog-hint", "unmount {name}? you can tap it again to reconnect" }
+                },
+                Dialog::ConfigNotice { title, body } => rsx! {
+                    div { class: "dialog-title", "{title}" }
+                    div { class: "dialog-hint dialog-hint-wrap", "{body}" }
+                },
+                Dialog::ImportConfig { text } => rsx! {
+                    div { class: "dialog-title", "import config" }
+                    div { class: "dialog-hint", "paste an exported mkestral-config.json — passwords and keys are not in the file" }
+                    textarea {
+                        class: "dialog-textarea",
+                        value: "{text}",
+                        placeholder: "paste JSON here",
+                        autocapitalize: "off",
+                        autocorrect: "off",
+                        spellcheck: false,
+                        oninput: move |e| patch_dialog(store, |dlg| {
+                            if let Dialog::ImportConfig { text } = dlg {
+                                *text = e.value();
+                            }
+                        }),
+                    }
+                },
+                Dialog::ItemActions { .. } => rsx! {},
             }}
             if let Some(err) = &*store.dialog_error.read() {
                 div { class: "dialog-error", "{err}" }
             }
             div { class: "dialog-actions",
-                OutlineButton { label: "CANCEL".to_string(), onpress: cancel }
+                if !matches!(dialog, Dialog::ConfigNotice { .. }) {
+                    OutlineButton { label: "CANCEL".to_string(), onpress: cancel }
+                }
                 {match &dialog {
                     Dialog::Remove { .. } | Dialog::WipeCredentials => {
                         rsx! { DangerButton { label: "WIPE".to_string(), onpress: submit } }
+                    }
+                    Dialog::Disconnect { .. } => {
+                        rsx! { DangerButton { label: "DISCONNECT".to_string(), onpress: submit } }
+                    }
+                    Dialog::ConfigNotice { .. } => {
+                        rsx! { AccentButton { label: "OK".to_string(), onpress: submit } }
+                    }
+                    Dialog::ImportConfig { .. } => {
+                        rsx! {
+                            OutlineButton {
+                                label: "FROM FILE".to_string(),
+                                onpress: move |_| { let mut s = store; s.load_import_file(); },
+                            }
+                            AccentButton { label: "IMPORT".to_string(), onpress: submit }
+                        }
                     }
                     Dialog::Remount { .. } => {
                         rsx! { AccentButton { label: "REMOUNT".to_string(), onpress: submit } }
@@ -203,6 +255,102 @@ fn DialogBody(dialog: Dialog) -> Element {
                     }
                     _ => rsx! { AccentButton { label: "APPLY".to_string(), onpress: submit } },
                 }}
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Long-press actions
+// ---------------------------------------------------------------------------
+
+#[component]
+fn ItemActionsSheet(name: String) -> Element {
+    let store = use_store();
+    let entry = store.selected_entry();
+    let is_file = entry.as_ref().is_some_and(|e| e.kind == EntryKind::File);
+    let bookmarked = store.is_bookmarked(&name);
+    let size = entry
+        .as_ref()
+        .map(|e| {
+            if e.kind == EntryKind::Dir {
+                e.items
+                    .map(|n| format!("{n} items"))
+                    .unwrap_or_else(|| "folder".into())
+            } else {
+                format_size(e.size_bytes)
+            }
+        })
+        .unwrap_or_default();
+    let kind = if is_file { "file" } else { "folder" };
+    let bookmark_label = if bookmarked {
+        "Remove bookmark"
+    } else {
+        "Add bookmark"
+    };
+    let bookmark_name = name.clone();
+    let rename_name = name.clone();
+    let delete_name = name.clone();
+
+    rsx! {
+        div { class: "dialog action-sheet",
+            div { class: "dialog-title", "{name}" }
+            div { class: "dialog-hint", "{kind} · {size}" }
+            div { class: "action-sheet-list",
+                button {
+                    class: "action-sheet-btn",
+                    disabled: entry.is_none(),
+                    onclick: move |_| {
+                        let mut s = store;
+                        if let Some(e) = s.selected_entry() {
+                            s.enqueue(Direction::Up, &e);
+                        }
+                        s.close_dialog();
+                    },
+                    "Download"
+                }
+                button {
+                    class: "action-sheet-btn",
+                    disabled: !is_file,
+                    onclick: move |_| {
+                        let mut s = store;
+                        if let Some(e) = s.selected_entry() {
+                            s.play_in_vlc(&e);
+                        }
+                        s.close_dialog();
+                    },
+                    "Play"
+                }
+                button {
+                    class: "action-sheet-btn",
+                    onclick: move |_| {
+                        let mut s = store;
+                        s.close_dialog();
+                        s.open_dialog(Dialog::Rename {
+                            from: rename_name.clone(),
+                            to: rename_name.clone(),
+                        });
+                    },
+                    "Rename"
+                }
+                button {
+                    class: "action-sheet-btn",
+                    onclick: move |_| { let mut s = store; s.toggle_bookmark(&bookmark_name); },
+                    "{bookmark_label}"
+                }
+                button {
+                    class: "action-sheet-btn action-sheet-danger",
+                    onclick: move |_| {
+                        let mut s = store;
+                        s.close_dialog();
+                        s.open_dialog(Dialog::Remove { name: delete_name.clone() });
+                    },
+                    "Delete"
+                }
+            }
+            OutlineButton {
+                label: "Cancel".to_string(),
+                onpress: move |_| { let mut s = store; s.close_dialog(); },
             }
         }
     }
@@ -271,11 +419,6 @@ fn HostDialog(draft: HostDraft) -> Element {
             div { class: "host-dialog-titlebar",
                 span { class: "dialog-title", "{title}" }
                 div { class: "spacer" }
-                span {
-                    class: "toolbar-verb",
-                    onclick: move |_| { ssh_import(store); },
-                    "IMPORT ~/.ssh/config"
-                }
                 span {
                     class: "toolbar-verb",
                     onclick: move |_| { let mut s = store; s.close_dialog(); },
@@ -494,18 +637,6 @@ fn cycle_key(store: Store, current: &str) {
     patch_draft(store, move |d| d.key_id = next);
 }
 
-/// `IMPORT ~/.ssh/config` (mock): pre-fill from a fixture Host block.
-fn ssh_import(store: Store) {
-    let (name, host, user, port) = mock::ssh_config_entry();
-    patch_draft(store, move |d| {
-        d.name = name;
-        d.group = "prod".into();
-        d.address = host;
-        d.user = user;
-        d.port = port;
-    });
-}
-
 /// Run a real connect-time probe against the injected backend (E8-S3).
 fn start_probe(store: Store) {
     let draft = match store.dialog.read().clone() {
@@ -546,9 +677,7 @@ fn start_probe(store: Store) {
                             prompt.fingerprint
                         )));
                     } else {
-                        s.append_probe(ProbeLine::Warn(
-                            "host key not in known_hosts".into(),
-                        ));
+                        s.append_probe(ProbeLine::Warn("host key not in known_hosts".into()));
                     }
                     s.append_probe(ProbeLine::Warn(prompt.fingerprint.clone()));
                     patch_draft(s, move |d| {

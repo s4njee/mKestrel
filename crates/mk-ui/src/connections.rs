@@ -26,7 +26,14 @@ pub fn ConnectionsScreen() -> Element {
                     div { class: "connections-sub", "{hosts.len()} saved · {mounted} mounted" }
                 }
                 div { class: "spacer" }
-                OutlineButton { label: "Import from .ssh/config" }
+                OutlineButton {
+                    label: "Export",
+                    onpress: move |_| { let mut s = store; s.export_config(); },
+                }
+                OutlineButton {
+                    label: "Import",
+                    onpress: move |_| { let mut s = store; s.open_import_config(); },
+                }
                 AccentButton {
                     label: "New connection",
                     onpress: move |_| { let mut s = store; s.open_new_host(); },
@@ -111,7 +118,10 @@ fn meta(h: &Host) -> String {
         return "timed out".to_string();
     }
     match h.auth {
-        AuthMethod::Key => format!("key · {}", h.key_id.clone().unwrap_or_else(|| "id_ed25519".into())),
+        AuthMethod::Key => format!(
+            "key · {}",
+            h.key_id.clone().unwrap_or_else(|| "id_ed25519".into())
+        ),
         AuthMethod::Password => "password".to_string(),
         AuthMethod::Agent => "agent".to_string(),
         AuthMethod::KbdInt => "keyboard-interactive".to_string(),

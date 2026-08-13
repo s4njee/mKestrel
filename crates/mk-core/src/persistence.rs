@@ -10,9 +10,11 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use crate::bookmark::Bookmark;
 use crate::credentials::Credentials;
 use crate::host::Host;
 use crate::job::{Job, JobState};
+use crate::recent::RecentPath;
 use crate::settings::Settings;
 
 pub const SCHEMA_VERSION: u32 = 1;
@@ -25,6 +27,12 @@ pub struct StoredState {
     pub jobs: Vec<Job>,
     pub selected_host_id: String,
     pub cwd: String,
+    /// Recently visited folders. Missing on stores written before this field
+    /// existed; serde default keeps those loads from being quarantined.
+    #[serde(default)]
+    pub recents: Vec<RecentPath>,
+    #[serde(default)]
+    pub bookmarks: Vec<Bookmark>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,6 +63,8 @@ impl StoredState {
             settings: Settings::default(),
             credentials: Credentials::default(),
             jobs: Vec::new(),
+            recents: Vec::new(),
+            bookmarks: Vec::new(),
         }
     }
 
@@ -69,6 +79,8 @@ impl StoredState {
             jobs: demo.jobs,
             selected_host_id: demo.selected_host_id,
             cwd: demo.cwd,
+            recents: Vec::new(),
+            bookmarks: Vec::new(),
         }
     }
 
@@ -94,6 +106,8 @@ impl StoredState {
             .collect();
         self.hosts.retain(|h| h.is_real);
         self.jobs.retain(|j| real.contains(&j.host_id));
+        self.recents.retain(|r| real.contains(&r.host_id));
+        self.bookmarks.retain(|b| real.contains(&b.host_id));
         if !self.hosts.iter().any(|h| h.id == self.selected_host_id) {
             self.selected_host_id = self.hosts.first().map(|h| h.id.clone()).unwrap_or_default();
             self.cwd = self
@@ -213,6 +227,38 @@ mod tests {
         assert!(!raw.contains("BEGIN RSA PRIVATE KEY"));
         assert!(!raw.contains("-----BEGIN"));
         assert!(!raw.contains("\"secret\""));
+        std::fs::remove_file(&path).unwrap();
+    }
+
+    #[test]
+    fn missing_recents_field_loads_as_empty() {
+        let path = temp("norecents");
+        let state = StoredState::real_only();
+        save(&path, &state).unwrap();
+        let raw = std::fs::read_to_string(&path).unwrap();
+        let mut v: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        v["state"].as_object_mut().unwrap().remove("recents");
+        std::fs::write(&path, serde_json::to_vec_pretty(&v).unwrap()).unwrap();
+        let loaded = load(&path).unwrap();
+        assert!(loaded.recents.is_empty());
+        std::fs::remove_file(&path).unwrap();
+    }
+
+    #[test]
+    fn recents_round_trip() {
+        let path = temp("recents");
+        let mut state = StoredState::real_only();
+        crate::recent::touch(
+            &mut state.recents,
+            "host-a".into(),
+            "/export/media".into(),
+            1_700_000_000,
+        );
+        save(&path, &state).unwrap();
+        let loaded = load(&path).unwrap();
+        assert_eq!(loaded.recents.len(), 1);
+        assert_eq!(loaded.recents[0].host_id, "host-a");
+        assert_eq!(loaded.recents[0].path, "/export/media");
         std::fs::remove_file(&path).unwrap();
     }
 

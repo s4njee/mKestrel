@@ -10,10 +10,12 @@ use std::time::{Duration, Instant};
 
 use dioxus::prelude::*;
 
+use mk_core::bookmark::Bookmark;
 use mk_core::credentials::{Credentials, KeyType, KnownHost, SecretStorage, SshKey};
 use mk_core::fixtures;
 use mk_core::host::{AuthMethod, Entry, EntryKind, Host, HostOptions, HostStatus, Protocol};
 use mk_core::job::{Direction, Job, JobState};
+use mk_core::recent::RecentPath;
 use mk_core::settings::{OverwritePolicy, Settings, SortDir, SortKey, SortSpec};
 
 use crate::backend::{
@@ -34,6 +36,14 @@ pub enum Screen {
     Queue,
     Settings,
     Gallery,
+}
+
+/// What the browser main pane is showing: a live directory, Recent, or Bookmarks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Place {
+    Listing,
+    Recent,
+    Bookmarks,
 }
 
 /// Left-nav sections of the settings screen (`2d`, E9-S1).
@@ -280,6 +290,24 @@ pub enum Dialog {
     OrphanPartials {
         paths: Vec<String>,
     },
+    /// Confirm unmount of the selected host.
+    Disconnect {
+        id: String,
+        name: String,
+    },
+    /// Wrote a portable config file, or finished an import.
+    ConfigNotice {
+        title: String,
+        body: String,
+    },
+    /// Paste or load a portable config file.
+    ImportConfig {
+        text: String,
+    },
+    /// Long-press actions on a listing row.
+    ItemActions {
+        name: String,
+    },
 }
 
 /// Everything the UI needs, held as Copy signal handles in context.
@@ -291,12 +319,20 @@ pub struct Store {
     pub listing: Signal<Listing>,
     pub filter: Signal<String>,
     pub sort: Signal<SortSpec>,
-    /// False until the user presses SORT: the fixture listing then keeps its
-    /// exact mockup order (E5-S3 AC), and sorting is a user action.
+    /// True once a sort is in effect. Starts on so a freshly entered folder
+    /// is name-sorted (dirs first); SORT then cycles the key.
     pub sort_applied: Signal<bool>,
     pub selection: Signal<BTreeSet<String>>,
     /// Navigation history of `(host_id, path)`.
     pub history: Signal<Vec<(String, String)>>,
+    /// Recently visited folders, newest first. Persisted with the store.
+    pub recents: Signal<Vec<RecentPath>>,
+    /// User-pinned files and folders.
+    pub bookmarks: Signal<Vec<Bookmark>>,
+    /// After navigating to a bookmarked file's parent, select this name.
+    pub pending_select: Signal<Option<String>>,
+    /// Browser pane: directory listing, Recent, or Bookmarks.
+    pub place: Signal<Place>,
     pub screen: Signal<Screen>,
     pub settings_section: Signal<SettingsSection>,
     /// Phone hosts-picker sheet (E10-S1), since the rail hides <768px.
@@ -367,19 +403,45 @@ pub fn StoreProvider(children: Element, initial: Screen, store_path: Option<Stri
     seeded.sanitize_jobs();
     let demo = seeded;
     let selected_init = demo.selected_host_id;
-    let cwd_init = demo.cwd;
+    let mut cwd_init = demo.cwd;
+    if let Some(root) = demo
+        .hosts
+        .iter()
+        .find(|h| h.id == selected_init)
+        .map(|h| h.initial_path.clone())
+    {
+        if !under_mount(&cwd_init, &root) {
+            cwd_init = root;
+        }
+    }
+    let recents_init = {
+        let mut recents = demo.recents;
+        if !selected_init.is_empty() && !cwd_init.is_empty() {
+            mk_core::recent::touch(
+                &mut recents,
+                selected_init.clone(),
+                cwd_init.clone(),
+                chrono::Utc::now().timestamp(),
+            );
+        }
+        recents
+    };
     let store = Store {
         hosts: use_signal(|| demo.hosts),
         selected_host_id: use_signal(|| selected_init),
         cwd: use_signal(|| cwd_init),
         listing: use_signal(|| Listing::Loading),
         filter: use_signal(String::new),
-        sort: use_signal(SortSpec::default),
-        sort_applied: use_signal(|| false),
+        sort: use_signal(|| demo.settings.browsing.default_sort),
+        sort_applied: use_signal(|| true),
         // Pre-select the mockup's downloading file so the initial view matches
         // `2a`: footer `1 selected · 24.1G`, inspector on the live transfer.
         selection: use_signal(|| BTreeSet::from(["BladeRunner2049.2017.2160p.mkv".to_string()])),
         history: use_signal(Vec::new),
+        recents: use_signal(|| recents_init),
+        bookmarks: use_signal(|| demo.bookmarks),
+        pending_select: use_signal(|| None),
+        place: use_signal(|| Place::Listing),
         screen: use_signal(|| initial),
         settings_section: use_signal(|| SettingsSection::Transfers),
         hosts_sheet: use_signal(|| false),
@@ -495,6 +557,8 @@ fn start_persister(store: Store, path: Option<String>) {
                 jobs: store.jobs.read().clone(),
                 selected_host_id: store.selected_host_id.read().clone(),
                 cwd: store.cwd.read().clone(),
+                recents: store.recents.read().clone(),
+                bookmarks: store.bookmarks.read().clone(),
             };
             let _ = mk_core::persistence::save(std::path::Path::new(&path), &state);
         }
@@ -704,12 +768,7 @@ fn start_transfer_engine(store: Store) {
                 let cancel = Arc::new(AtomicBool::new(false));
                 cancel_flags.insert(job.id.clone(), cancel.clone());
                 spawn(async move {
-                    let host = s
-                        .hosts
-                        .read()
-                        .iter()
-                        .find(|h| h.id == job.host_id)
-                        .cloned();
+                    let host = s.hosts.read().iter().find(|h| h.id == job.host_id).cloned();
                     let Some(host) = host else { return };
                     let opts = TransferOpts {
                         chunk_bytes: chunk,
@@ -748,7 +807,10 @@ fn start_transfer_engine(store: Store) {
                         }
                     };
                     if result.is_err() {
-                        failed.lock().unwrap().insert(job.id.clone(), Instant::now());
+                        failed
+                            .lock()
+                            .unwrap()
+                            .insert(job.id.clone(), Instant::now());
                     }
                     let mut jobs = s.jobs.write();
                     if let Some(j) = jobs
@@ -954,13 +1016,34 @@ impl Store {
     // ------------------------------------------------------------------
 
     pub fn select_host(&mut self, id: String) {
-        if *self.selected_host_id.read() == id {
-            return;
-        }
         let host = self.hosts.read().iter().find(|h| h.id == id).cloned();
         let Some(host) = host else {
             return;
         };
+        if *self.selected_host_id.read() == id {
+            let from_place = *self.place.read();
+            *self.place.write() = Place::Listing;
+            if matches!(from_place, Place::Recent | Place::Bookmarks) {
+                return;
+            }
+            match host.status {
+                HostStatus::Mounted | HostStatus::Unreachable => {
+                    self.open_dialog(Dialog::Disconnect {
+                        id,
+                        name: host.name,
+                    });
+                }
+                HostStatus::Idle => {
+                    *self.cwd.write() = host.initial_path.clone();
+                    self.remember_cwd();
+                    self.reload();
+                }
+                HostStatus::Stale => {
+                    self.open_dialog(Dialog::Remount { id });
+                }
+            }
+            return;
+        }
         // Real password-auth hosts prompt for a credential before connecting.
         if host.is_real && host.auth == AuthMethod::Password && self.password_for(&id).is_none() {
             self.open_dialog(Dialog::HostPassword {
@@ -969,10 +1052,12 @@ impl Store {
             });
             return;
         }
+        *self.place.write() = Place::Listing;
         *self.selected_host_id.write() = id;
         self.selection.write().clear();
         // Navigate to the host's root directory.
         *self.cwd.write() = host.initial_path.clone();
+        self.remember_cwd();
         self.reload();
     }
 
@@ -990,27 +1075,82 @@ impl Store {
 
     /// Jump to an absolute path (ancestor crumb). Pushes history.
     pub fn navigate_to(&mut self, path: String) {
-        let host = self.selected_host_id.read().clone();
-        let cwd = self.cwd.read().clone();
-        self.history.write().push((host, cwd));
-        self.set_cwd(path);
+        if !under_mount(&path, &self.selected_host().initial_path) {
+            return;
+        }
+        self.commit_cwd_if_readable(path);
     }
 
     /// Enter a directory by name (double-tap / chevron).
     pub fn open_dir(&mut self, name: &str) {
-        let host = self.selected_host_id.read().clone();
+        if name == ".." {
+            self.go_up();
+            return;
+        }
+        if name == "." || name.is_empty() {
+            return;
+        }
         let cwd = self.cwd.read().clone();
-        self.history.write().push((host, cwd.clone()));
         let joined = format!("{}/{}", cwd.trim_end_matches('/'), name);
-        self.set_cwd(joined);
+        self.commit_cwd_if_readable(joined);
     }
 
-    /// `..` parent row.
+    /// `..` parent row. Stays put when already at the mount root, or when
+    /// the parent is not listable (permission denied).
     pub fn go_up(&mut self) {
-        let host = self.selected_host_id.read().clone();
+        if self.at_mount_root() {
+            return;
+        }
         let cwd = self.cwd.read().clone();
-        self.history.write().push((host, cwd.clone()));
-        self.set_cwd(mock::parent_of(&cwd));
+        let parent = mock::parent_of(&cwd);
+        if parent == cwd {
+            return;
+        }
+        if !under_mount(&parent, &self.selected_host().initial_path) {
+            return;
+        }
+        self.commit_cwd_if_readable(parent);
+    }
+
+    pub fn at_mount_root(&self) -> bool {
+        let cwd = mk_core::recent::normalize_path(&self.cwd.read());
+        let root = mk_core::recent::normalize_path(&self.selected_host().initial_path);
+        cwd == root
+    }
+
+    /// List `path` first; only then move the browser. A denied parent (typical
+    /// NFS export root) must not replace the current listing.
+    fn commit_cwd_if_readable(&mut self, path: String) {
+        if mk_core::recent::normalize_path(&path)
+            == mk_core::recent::normalize_path(&self.cwd.read())
+        {
+            self.apply_pending_select();
+            return;
+        }
+        let host = self.selected_host();
+        let from_host = self.selected_host_id.read().clone();
+        let from_cwd = self.cwd.read().clone();
+        let this = *self;
+        spawn(async move {
+            let backend = this.backend.read().clone();
+            match backend.list(&host, &path).await {
+                Ok(entries) => {
+                    let entries = without_dot_dirs(entries);
+                    let mut this = this;
+                    this.history.write().push((from_host, from_cwd));
+                    this.selection.write().clear();
+                    *this.listing_error.write() = None;
+                    *this.cwd.write() = path;
+                    this.remember_cwd();
+                    *this.listing.write() = Listing::Loaded(entries);
+                    this.apply_pending_select();
+                    this.mark_host_status(&host.id, HostStatus::Mounted);
+                }
+                Err(_) => {
+                    // Keep the current directory and listing as they are.
+                }
+            }
+        });
     }
 
     /// Back to the previous directory (scroll/selection reset for the mock).
@@ -1029,6 +1169,7 @@ impl Store {
         *self.listing.write() = Listing::Loading;
         *self.listing_error.write() = None;
         *self.cwd.write() = cwd.clone();
+        self.remember_cwd();
         let host = self.selected_host();
         let this = *self;
         spawn(async move {
@@ -1037,8 +1178,16 @@ impl Store {
             let entries = list_dir(this, &host, &cwd).await;
             if *this.cwd.read() == cwd {
                 *this.listing.write() = Listing::Loaded(entries);
+                this.apply_pending_select();
             }
         });
+    }
+
+    fn apply_pending_select(&mut self) {
+        let name = self.pending_select.write().take();
+        if let Some(name) = name {
+            self.select_only(&name);
+        }
     }
 
     /// Re-list the current directory through the backend after a mutation.
@@ -1072,10 +1221,13 @@ impl Store {
         }
     }
 
-    /// Long-press a row: focus it and open the details sheet.
+    /// Long-press a row: focus it and open the action modal.
     pub fn open_details(&mut self, name: &str) {
         self.select_only(name);
-        *self.details_open.write() = true;
+        *self.details_open.write() = false;
+        self.open_dialog(Dialog::ItemActions {
+            name: name.to_string(),
+        });
     }
 
     pub fn close_details(&mut self) {
@@ -1253,7 +1405,10 @@ impl Store {
                 let mut jobs = self.jobs.write();
                 if let Some(j) = jobs.iter_mut().find(|j| {
                     j.local_path.ends_with(&name)
-                        && matches!(j.state, JobState::Paused | JobState::Failed | JobState::Waiting)
+                        && matches!(
+                            j.state,
+                            JobState::Paused | JobState::Failed | JobState::Waiting
+                        )
                 }) {
                     j.state = JobState::Waiting;
                     j.overwrite_policy = Some(OverwritePolicy::Resume);
@@ -1294,6 +1449,169 @@ impl Store {
 
     pub fn show_browser(&mut self) {
         self.screen.set(Screen::Browser);
+    }
+
+    /// Open the Recent place: the main pane lists visited folders.
+    pub fn show_recent(&mut self) {
+        *self.place.write() = Place::Recent;
+        *self.hosts_sheet.write() = false;
+        self.selection.write().clear();
+        *self.details_open.write() = false;
+        *self.filter.write() = String::new();
+        self.screen.set(Screen::Browser);
+    }
+
+    /// Leave Recent and open a remembered folder.
+    pub fn open_recent(&mut self, host_id: String, path: String) {
+        *self.place.write() = Place::Listing;
+        *self.hosts_sheet.write() = false;
+        if *self.selected_host_id.read() != host_id {
+            let host = self.hosts.read().iter().find(|h| h.id == host_id).cloned();
+            let Some(host) = host else {
+                return;
+            };
+            if host.is_real
+                && host.auth == AuthMethod::Password
+                && self.password_for(&host_id).is_none()
+            {
+                self.open_dialog(Dialog::HostPassword {
+                    host_id,
+                    password: String::new(),
+                });
+                return;
+            }
+            *self.selected_host_id.write() = host_id;
+        }
+        self.set_cwd(path);
+    }
+
+    fn remember_cwd(&mut self) {
+        let host_id = self.selected_host_id.read().clone();
+        let path = self.cwd.read().clone();
+        let now = chrono::Utc::now().timestamp();
+        mk_core::recent::touch(&mut self.recents.write(), host_id, path, now);
+    }
+
+    /// Recents whose host still exists, filtered by the path-bar filter.
+    pub fn visible_recents(&self) -> Vec<RecentPath> {
+        let filter = self.filter.read().to_lowercase();
+        let hosts = self.hosts.read();
+        self.recents
+            .read()
+            .iter()
+            .filter(|r| hosts.iter().any(|h| h.id == r.host_id))
+            .filter(|r| {
+                if filter.is_empty() {
+                    return true;
+                }
+                let host_name = hosts
+                    .iter()
+                    .find(|h| h.id == r.host_id)
+                    .map(|h| h.name.as_str())
+                    .unwrap_or("");
+                r.path.to_lowercase().contains(&filter)
+                    || host_name.to_lowercase().contains(&filter)
+                    || mk_core::recent::folder_name(&r.path)
+                        .to_lowercase()
+                        .contains(&filter)
+            })
+            .cloned()
+            .collect()
+    }
+
+    pub fn show_bookmarks(&mut self) {
+        *self.place.write() = Place::Bookmarks;
+        *self.hosts_sheet.write() = false;
+        self.selection.write().clear();
+        *self.details_open.write() = false;
+        *self.filter.write() = String::new();
+        self.screen.set(Screen::Browser);
+    }
+
+    pub fn entry_remote_path(&self, name: &str) -> String {
+        let cwd = self.cwd.read().clone();
+        format!("{}/{}", cwd.trim_end_matches('/'), name)
+    }
+
+    pub fn is_bookmarked(&self, name: &str) -> bool {
+        let host = self.selected_host_id.read().clone();
+        let path = self.entry_remote_path(name);
+        mk_core::bookmark::contains(&self.bookmarks.read(), &host, &path)
+    }
+
+    pub fn toggle_bookmark(&mut self, name: &str) {
+        let Some(entry) = self.current_listing().into_iter().find(|e| e.name == name) else {
+            return;
+        };
+        let host = self.selected_host_id.read().clone();
+        let path = self.entry_remote_path(name);
+        let now = chrono::Utc::now().timestamp();
+        if mk_core::bookmark::contains(&self.bookmarks.read(), &host, &path) {
+            mk_core::bookmark::remove(&mut self.bookmarks.write(), &host, &path);
+        } else {
+            mk_core::bookmark::add(&mut self.bookmarks.write(), host, path, entry.kind, now);
+        }
+        self.close_dialog();
+    }
+
+    pub fn remove_bookmark(&mut self, host_id: &str, path: &str) {
+        mk_core::bookmark::remove(&mut self.bookmarks.write(), host_id, path);
+    }
+
+    /// Open a bookmark: folders navigate in, files land on the parent listing.
+    pub fn open_bookmark(&mut self, host_id: String, path: String, kind: EntryKind) {
+        *self.place.write() = Place::Listing;
+        *self.hosts_sheet.write() = false;
+        if *self.selected_host_id.read() != host_id {
+            let host = self.hosts.read().iter().find(|h| h.id == host_id).cloned();
+            let Some(host) = host else {
+                return;
+            };
+            if host.is_real
+                && host.auth == AuthMethod::Password
+                && self.password_for(&host_id).is_none()
+            {
+                self.open_dialog(Dialog::HostPassword {
+                    host_id,
+                    password: String::new(),
+                });
+                return;
+            }
+            *self.selected_host_id.write() = host_id;
+        }
+        if kind == EntryKind::Dir {
+            self.commit_cwd_if_readable(path);
+        } else {
+            let name = mk_core::recent::folder_name(&path).to_string();
+            *self.pending_select.write() = Some(name);
+            self.commit_cwd_if_readable(mock::parent_of(&path));
+        }
+    }
+
+    pub fn visible_bookmarks(&self) -> Vec<Bookmark> {
+        let filter = self.filter.read().to_lowercase();
+        let hosts = self.hosts.read();
+        self.bookmarks
+            .read()
+            .iter()
+            .filter(|b| hosts.iter().any(|h| h.id == b.host_id))
+            .filter(|b| {
+                if filter.is_empty() {
+                    return true;
+                }
+                let host_name = hosts
+                    .iter()
+                    .find(|h| h.id == b.host_id)
+                    .map(|h| h.name.as_str())
+                    .unwrap_or("");
+                b.path.to_lowercase().contains(&filter)
+                    || host_name.to_lowercase().contains(&filter)
+                    || mk_core::recent::folder_name(&b.path)
+                        .to_lowercase()
+                        .contains(&filter)
+            })
+            .cloned()
+            .collect()
     }
 
     pub fn show_connections(&mut self) {
@@ -1419,6 +1737,33 @@ impl Store {
             host.mounted_at = Some(now);
             host.retrans = 0;
         }
+    }
+
+    /// Unmount: drop the live session, mark idle, reset to the saved root.
+    pub fn disconnect_host(&mut self, id: &str) {
+        let host = self.hosts.read().iter().find(|h| h.id == id).cloned();
+        let Some(host) = host else {
+            return;
+        };
+        {
+            let mut hosts = self.hosts.write();
+            if let Some(h) = hosts.iter_mut().find(|h| h.id == id) {
+                h.status = HostStatus::Idle;
+                h.mounted_at = None;
+            }
+        }
+        self.selection.write().clear();
+        *self.details_open.write() = false;
+        *self.listing_error.write() = None;
+        *self.listing.write() = Listing::Loaded(Vec::new());
+        *self.cwd.write() = host.initial_path.clone();
+        *self.place.write() = Place::Listing;
+        let backend = self.backend.read().clone();
+        let host = host.clone();
+        spawn(async move {
+            let _ = backend.disconnect(&host).await;
+        });
+        self.close_dialog();
     }
 
     /// `pause all` / resume: pauses every running job; flips paused jobs back
@@ -1678,6 +2023,95 @@ impl Store {
         }
     }
 
+    pub fn open_import_config(&mut self) {
+        self.open_dialog(Dialog::ImportConfig {
+            text: String::new(),
+        });
+    }
+
+    /// Write hosts + settings + known hosts (no secrets) to the portable file.
+    pub fn export_config(&mut self) {
+        let bundle = mk_core::ConfigBundle::from_parts(
+            &self.hosts.read(),
+            &self.settings.read(),
+            &self.credentials.read().known_hosts,
+            &self.bookmarks.read(),
+            chrono::Utc::now().timestamp(),
+        );
+        match bundle.to_json() {
+            Ok(json) => {
+                let path = config_export_path();
+                if let Some(parent) = path.parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                match std::fs::write(&path, json) {
+                    Ok(()) => {
+                        let n = bundle.hosts.len();
+                        self.open_dialog(Dialog::ConfigNotice {
+                            title: "export config".into(),
+                            body: format!(
+                                "wrote {n} host(s) to {}\npasswords and private keys are not included",
+                                path.display()
+                            ),
+                        });
+                    }
+                    Err(e) => {
+                        self.open_dialog(Dialog::ConfigNotice {
+                            title: "export config".into(),
+                            body: format!("could not write {}: {e}", path.display()),
+                        });
+                    }
+                }
+            }
+            Err(e) => {
+                self.open_dialog(Dialog::ConfigNotice {
+                    title: "export config".into(),
+                    body: e.to_string(),
+                });
+            }
+        }
+    }
+
+    /// Fill the import dialog from the default export path.
+    pub fn load_import_file(&mut self) {
+        let path = config_export_path();
+        match std::fs::read_to_string(&path) {
+            Ok(text) => {
+                self.open_dialog(Dialog::ImportConfig { text });
+            }
+            Err(e) => {
+                self.open_dialog(Dialog::ImportConfig {
+                    text: String::new(),
+                });
+                self.set_dialog_error(format!("{}: {e}", path.display()));
+            }
+        }
+    }
+
+    pub fn apply_import(&mut self, raw: &str) {
+        match mk_core::ConfigBundle::from_json(raw) {
+            Ok(bundle) => {
+                let result = mk_core::merge_import(
+                    &mut self.hosts.write(),
+                    &mut self.settings.write(),
+                    &mut self.credentials.write().known_hosts,
+                    &mut self.bookmarks.write(),
+                    bundle,
+                );
+                *self.dialog.write() = None;
+                *self.dialog_error.write() = None;
+                self.open_dialog(Dialog::ConfigNotice {
+                    title: "import config".into(),
+                    body: format!(
+                        "{} added · {} updated · {} known hosts\npasswords and keys stay on this device",
+                        result.hosts_added, result.hosts_updated, result.known_hosts_added
+                    ),
+                });
+            }
+            Err(e) => self.set_dialog_error(e.to_string()),
+        }
+    }
+
     /// Validate + save the host draft. Returns an inline error on failure.
     pub fn save_host_draft(&mut self, draft: &HostDraft) -> Option<String> {
         let name = draft.name.trim();
@@ -1844,9 +2278,11 @@ impl Store {
                 // Now connect: select the host and browse its root.
                 let host = self.hosts.read().iter().find(|h| h.id == host_id).cloned();
                 if let Some(host) = host {
+                    *self.place.write() = Place::Listing;
                     *self.selected_host_id.write() = host_id;
                     self.selection.write().clear();
                     *self.cwd.write() = host.initial_path.clone();
+                    self.remember_cwd();
                     self.reload();
                 }
                 return;
@@ -1858,6 +2294,22 @@ impl Store {
             }
             Dialog::Remount { id } => {
                 self.remount_host(&id);
+                *self.dialog.write() = None;
+                return;
+            }
+            Dialog::Disconnect { id, .. } => {
+                self.disconnect_host(&id);
+                return;
+            }
+            Dialog::ConfigNotice { .. } => {
+                *self.dialog.write() = None;
+                return;
+            }
+            Dialog::ImportConfig { text } => {
+                self.apply_import(&text);
+                return;
+            }
+            Dialog::ItemActions { .. } => {
                 *self.dialog.write() = None;
                 return;
             }
@@ -1949,6 +2401,7 @@ async fn list_dir(this: Store, host: &Host, path: &str) -> Vec<Entry> {
     let backend = this.backend.read().clone();
     match backend.list(host, path).await {
         Ok(entries) => {
+            let entries = without_dot_dirs(entries);
             // Guard: the user may have navigated elsewhere while this list was
             // in flight; don't apply stale results to the wrong directory.
             if *this.cwd.read() == path {
@@ -1980,11 +2433,119 @@ async fn list_dir(this: Store, host: &Host, path: &str) -> Vec<Entry> {
                         retry_list: true,
                     });
                 }
-                *this.listing_error.write() = Some(message);
-                this.mark_host_status(&host.id, HostStatus::Unreachable);
+                *this.listing_error.write() = Some(message.clone());
+                // A single denied folder is not a dead mount.
+                if !is_permission_denied(&message) {
+                    this.mark_host_status(&host.id, HostStatus::Unreachable);
+                }
             }
             Vec::new()
         }
+    }
+}
+
+fn without_dot_dirs(entries: Vec<Entry>) -> Vec<Entry> {
+    entries
+        .into_iter()
+        .filter(|e| e.name != "." && e.name != "..")
+        .collect()
+}
+
+fn is_permission_denied(message: &str) -> bool {
+    let m = message.to_ascii_lowercase();
+    m.contains("permission denied") || m.contains("eacces") || m.contains("13 ·")
+}
+
+/// Portable config file: Documents on iOS (Files app), otherwise Downloads.
+fn config_export_path() -> std::path::PathBuf {
+    if let Ok(home) = std::env::var("HOME") {
+        let home = std::path::PathBuf::from(home);
+        let docs = home.join("Documents");
+        if cfg!(target_os = "ios") || docs.is_dir() {
+            return docs.join("mkestral-config.json");
+        }
+        return home.join("Downloads").join("mkestral-config.json");
+    }
+    std::path::PathBuf::from("mkestral-config.json")
+}
+
+fn under_mount(path: &str, root: &str) -> bool {
+    let p = mk_core::recent::normalize_path(path);
+    let r = mk_core::recent::normalize_path(root);
+    if r.is_empty() || r == "/" {
+        return true;
+    }
+    p == r || p.starts_with(&format!("{r}/"))
+}
+
+#[cfg(test)]
+mod path_tests {
+    use super::*;
+
+    #[test]
+    fn under_mount_allows_root_and_children() {
+        assert!(under_mount("/mnt/raid6/ebooks", "/mnt/raid6/ebooks"));
+        assert!(under_mount("/mnt/raid6/ebooks/", "/mnt/raid6/ebooks"));
+        assert!(under_mount("/mnt/raid6/ebooks/Sony", "/mnt/raid6/ebooks"));
+        assert!(!under_mount("/mnt/raid6", "/mnt/raid6/ebooks"));
+        assert!(!under_mount("/mnt/raid6/ebooks2", "/mnt/raid6/ebooks"));
+        assert!(under_mount("/anything", "/"));
+    }
+
+    #[test]
+    fn permission_denied_messages() {
+        assert!(is_permission_denied("Permission denied"));
+        assert!(is_permission_denied("EACCES · /mnt/raid6"));
+        assert!(is_permission_denied("13 · /export · nfs error"));
+        assert!(!is_permission_denied("connection refused"));
+    }
+
+    #[test]
+    fn name_sort_is_dirs_first_then_alphabetical() {
+        let e = |name: &str, dir: bool| Entry {
+            name: name.into(),
+            kind: if dir { EntryKind::Dir } else { EntryKind::File },
+            target: None,
+            size_bytes: 0,
+            mode: 0o644,
+            uid: 0,
+            gid: 0,
+            owner_label: String::new(),
+            mtime: 0,
+            is_hidden: false,
+            inode: 0,
+            items: None,
+        };
+        let mut v = vec![
+            e("zeta.7z", false),
+            e("Sony", true),
+            e("alpha.7z", false),
+            e("Archive", true),
+        ];
+        sort_entries(&mut v, SortSpec::default(), true);
+        let names: Vec<&str> = v.iter().map(|x| x.name.as_str()).collect();
+        assert_eq!(names, ["Archive", "Sony", "alpha.7z", "zeta.7z"]);
+    }
+
+    #[test]
+    fn without_dot_dirs_drops_dot_and_dotdot() {
+        let e = |name: &str| Entry {
+            name: name.into(),
+            kind: EntryKind::Dir,
+            target: None,
+            size_bytes: 0,
+            mode: 0o755,
+            uid: 0,
+            gid: 0,
+            owner_label: String::new(),
+            mtime: 0,
+            is_hidden: name.starts_with('.'),
+            inode: 0,
+            items: None,
+        };
+        let out = without_dot_dirs(vec![e("."), e(".."), e("films")]);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].name, "films");
     }
 }
 
@@ -2014,11 +2575,12 @@ impl Store {
 }
 
 fn local_download_exists(local_path: &str) -> bool {
-    let rest = local_path
-        .strip_prefix("/Downloads/")
-        .unwrap_or(local_path);
+    let rest = local_path.strip_prefix("/Downloads/").unwrap_or(local_path);
     if let Ok(home) = std::env::var("HOME") {
-        return std::path::Path::new(&home).join("Downloads").join(rest).exists();
+        return std::path::Path::new(&home)
+            .join("Downloads")
+            .join(rest)
+            .exists();
     }
     std::path::Path::new(local_path).exists()
 }
@@ -2034,7 +2596,7 @@ fn next_sort(spec: SortSpec) -> SortSpec {
     SortSpec { key, dir }
 }
 
-/// Dirs first, then the key/direction. Natural order until the user sorts.
+/// Dirs first, then the key/direction. Applied as soon as a folder is shown.
 fn sort_entries(entries: &mut [Entry], spec: SortSpec, applied: bool) {
     if !applied {
         return;

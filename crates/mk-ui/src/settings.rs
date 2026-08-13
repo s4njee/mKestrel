@@ -394,7 +394,16 @@ fn KnownHostsSection() -> Element {
             div { class: "settings-footer",
                 span { "strict host key checking {strict_on}" }
                 span { "biometric unlock {bio_on}" }
-                span { class: "setting-link", "export config" }
+                span {
+                    class: "setting-link",
+                    onclick: move |_| { let mut s = store; s.export_config(); },
+                    "export config"
+                }
+                span {
+                    class: "setting-link",
+                    onclick: move |_| { let mut s = store; s.open_import_config(); },
+                    "import config"
+                }
                 span {
                     class: "setting-link error-text",
                     onclick: move |_| { let mut s = store; s.open_dialog(Dialog::WipeCredentials); },
@@ -490,6 +499,7 @@ fn AppearanceSection() -> Element {
 
 #[component]
 fn AboutSection() -> Element {
+    let store = use_store();
     let build = env!("CARGO_PKG_VERSION");
     rsx! {
         div { class: "settings-pane",
@@ -503,6 +513,18 @@ fn AboutSection() -> Element {
                 span { class: "setting-value", "MIT OR Apache-2.0" }
             }
             div { class: "setting-sub", "open-source notices: dioxus · russh · smb2 · nfs-rs · tokio" }
+            div { class: "settings-footer",
+                span {
+                    class: "setting-link",
+                    onclick: move |_| { let mut s = store; s.export_config(); },
+                    "export config"
+                }
+                span {
+                    class: "setting-link",
+                    onclick: move |_| { let mut s = store; s.open_import_config(); },
+                    "import config"
+                }
+            }
         }
     }
 }

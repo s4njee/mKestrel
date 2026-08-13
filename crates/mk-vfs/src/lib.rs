@@ -13,28 +13,44 @@
 //!   [`nfs-rs`](https://crates.io/crates/nfs-rs) (E4-S5).
 
 mod error;
+pub mod known_hosts;
 mod local;
 #[cfg(debug_assertions)]
 mod mock;
 mod nfs;
 mod pool;
 mod sftp;
-pub mod known_hosts;
 
 pub use error::{VfsError, VfsErrorKind};
+pub use known_hosts::{
+    encode_changed, encode_revoked, encode_unknown, fingerprint_sha256, KnownHostResult,
+    KnownHostsStore,
+};
 pub use local::LocalBackend;
 #[cfg(debug_assertions)]
 pub use mock::MockBackend;
 pub use nfs::NfsBackend;
 pub use pool::{spawn_pool_reaper, ConnectionPool};
 pub use sftp::{SftpAuth, SftpBackend, Vault as SftpVault};
-pub use known_hosts::{
-    encode_changed, encode_revoked, encode_unknown, fingerprint_sha256, KnownHostResult,
-    KnownHostsStore,
-};
 
 use async_trait::async_trait;
 use mk_core::host::{Entry, Host};
+
+/// NFS/SFTP readdir includes these; the browser draws its own parent row.
+pub(crate) fn is_dot_dir(name: &str) -> bool {
+    name == "." || name == ".."
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn dot_dirs() {
+        assert!(super::is_dot_dir("."));
+        assert!(super::is_dot_dir(".."));
+        assert!(!super::is_dot_dir(".hidden"));
+        assert!(!super::is_dot_dir("films"));
+    }
+}
 
 /// Streaming read handle (used by the transfer engine in E7). Async so real
 /// backends can wrap their native stream types.
@@ -46,7 +62,10 @@ pub trait ReadStream: Send {
     /// file (see the streaming spike in `docs/spikes.md`). Backends that cannot
     /// seek keep the default unsupported error.
     async fn seek(&mut self, _pos: u64) -> Result<u64, VfsError> {
-        Err(VfsError::new(VfsErrorKind::Other, "read seek not supported"))
+        Err(VfsError::new(
+            VfsErrorKind::Other,
+            "read seek not supported",
+        ))
     }
 }
 
@@ -56,7 +75,10 @@ pub trait WriteStream: Send {
     async fn write(&mut self, buf: &[u8]) -> Result<usize, VfsError>;
     async fn finish(&mut self) -> Result<(), VfsError>;
     async fn seek(&mut self, _pos: u64) -> Result<u64, VfsError> {
-        Err(VfsError::new(VfsErrorKind::Other, "write seek not supported"))
+        Err(VfsError::new(
+            VfsErrorKind::Other,
+            "write seek not supported",
+        ))
     }
 }
 
@@ -97,7 +119,11 @@ pub trait VfsBackend: Send + Sync + std::fmt::Debug {
     async fn open_write(&self, path: &str) -> Result<Box<dyn WriteStream>, VfsError>;
     /// Open an existing file for write at `offset` (B-5 resume). Default
     /// falls back to `open_write` when `offset == 0`.
-    async fn open_write_at(&self, path: &str, offset: u64) -> Result<Box<dyn WriteStream>, VfsError> {
+    async fn open_write_at(
+        &self,
+        path: &str,
+        offset: u64,
+    ) -> Result<Box<dyn WriteStream>, VfsError> {
         if offset == 0 {
             self.open_write(path).await
         } else {
@@ -113,10 +139,7 @@ pub trait VfsBackend: Send + Sync + std::fmt::Debug {
     async fn chmod(&self, path: &str, mode: u32) -> Result<(), VfsError>;
     async fn remove(&self, path: &str) -> Result<(), VfsError>;
     async fn symlink(&self, _target: &str, _link_path: &str) -> Result<(), VfsError> {
-        Err(VfsError::new(
-            VfsErrorKind::Other,
-            "symlink not supported",
-        ))
+        Err(VfsError::new(VfsErrorKind::Other, "symlink not supported"))
     }
 
     async fn statfs(&self, path: &str) -> Result<StatFs, VfsError>;
