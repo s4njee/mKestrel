@@ -442,6 +442,10 @@ fn HostField(label: String, value: String, onchange: EventHandler<String>) -> El
             input {
                 class: "field-input",
                 value: "{value}",
+                autocapitalize: "off",
+                autocorrect: "off",
+                autocomplete: "off",
+                spellcheck: false,
                 onfocus: move |_| { let mut f = focused; *f.write() = true; },
                 onblur: move |_| { let mut f = focused; *f.write() = false; },
                 oninput: move |e| onchange.call(e.value()),
@@ -596,7 +600,15 @@ fn DialogInput(label: String, value: String, oninput: Option<EventHandler<String
         Some(h) => rsx! {
             label { class: "field focused",
                 span { class: "field-label", "{label}" }
-                input { class: "field-input", value: "{value}", oninput: move |e| h.call(e.value()) }
+                input {
+                    class: "field-input",
+                    value: "{value}",
+                    autocapitalize: "off",
+                    autocorrect: "off",
+                    autocomplete: "off",
+                    spellcheck: false,
+                    oninput: move |e| h.call(e.value()),
+                }
             }
         },
         None => rsx! {

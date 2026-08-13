@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Bundle mkestral for the iOS simulator and install + launch it.
 #
-# Usage: scripts/bundle-ios-sim.sh [device-udid]
+# Usage: scripts/bundle-ios-sim.sh [device-udid] [debug|release]
 #   device-udid  default "booted" (the currently booted simulator).
+#   profile      default "debug". "release" seeds no fixtures (real-only hosts).
 #
 # This is the known-good recipe recorded in docs/dev-setup.md (E0-S2). The
 # interactive dev loop (`dx serve --platform ios`) is documented alongside.
@@ -11,13 +12,18 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 TARGET="aarch64-apple-ios-sim"
-PROFILE="debug"
+PROFILE="${2:-debug}"
 APP_NAME="mkestral"
 BUNDLE_ID="com.mkestral.app"
 UDID="${1:-booted}"
 
-echo "→ cargo build --target ${TARGET} (no-default-features, features mobile)…"
-cargo build --target "${TARGET}" --no-default-features --features mobile -p "${APP_NAME}"
+FLAG=""
+if [[ "${PROFILE}" == "release" ]]; then
+  FLAG="--release"
+fi
+
+echo "→ cargo build --target ${TARGET} ${FLAG} (no-default-features, features mobile, ${PROFILE})…"
+cargo build --target "${TARGET}" ${FLAG} --no-default-features --features mobile -p "${APP_NAME}"
 
 STAGE="target/${TARGET}/${PROFILE}/${APP_NAME}.app"
 rm -rf "${STAGE}"

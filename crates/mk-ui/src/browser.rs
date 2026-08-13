@@ -254,6 +254,9 @@ fn PathBar() -> Element {
                     class: "filter-field",
                     value: "{filter}",
                     placeholder: "filter…",
+                    autocapitalize: "off",
+                    autocorrect: "off",
+                    spellcheck: false,
                     oninput: move |e| {
                         let mut s = store;
                         *s.filter.write() = e.value();

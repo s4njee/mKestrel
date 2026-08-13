@@ -15,7 +15,22 @@ type Factory = Box<dyn Fn(&Host) -> Arc<dyn VfsBackend> + Send + Sync>;
 
 struct PoolEntry {
     backend: Arc<dyn VfsBackend>,
+    /// Snapshot of the connection config the backend was built with, so an
+    /// edited host (path/address/port/user/auth) evicts the stale session.
+    host: Host,
     last_used: Instant,
+}
+
+/// The connection-relevant fields of a host — changing any of them means the
+/// cached backend must be rebuilt. Runtime status fields are ignored.
+fn same_connection(a: &Host, b: &Host) -> bool {
+    a.protocol == b.protocol
+        && a.address == b.address
+        && a.port == b.port
+        && a.user == b.user
+        && a.auth == b.auth
+        && a.key_id == b.key_id
+        && a.initial_path == b.initial_path
 }
 
 pub struct ConnectionPool {
@@ -59,8 +74,16 @@ impl ConnectionPool {
         let mut sessions = self.sessions.lock().await;
         let id = host.id.clone();
         if let Some(entry) = sessions.get_mut(&id) {
-            entry.last_used = Instant::now();
-            return entry.backend.clone();
+            if same_connection(&entry.host, host) {
+                entry.last_used = Instant::now();
+                return entry.backend.clone();
+            }
+            // Connection config changed (e.g. edited initial path): drop the
+            // stale backend so the next op reconnects with the new config.
+            let stale = sessions.remove(&id);
+            if let Some(s) = stale {
+                let _ = s.backend.disconnect().await;
+            }
         }
         if sessions.len() >= self.max_sessions {
             let oldest = sessions
@@ -78,6 +101,7 @@ impl ConnectionPool {
             id,
             PoolEntry {
                 backend: backend.clone(),
+                host: host.clone(),
                 last_used: Instant::now(),
             },
         );
