@@ -11,8 +11,6 @@
 
 ## Screenshots
 
-Drop your captures over the files in `docs/screenshots/` — same names, same size is fine.
-
 ### Connections
 
 ![mKestrel connections](docs/screenshots/connections.png)
