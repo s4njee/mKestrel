@@ -20,9 +20,15 @@ pub fn DialogOverlay() -> Element {
     match dialog {
         Some(d) => {
             let tag = dialog_tag(&d);
+            // The host form is a full-screen page (design `02`), not a modal.
+            let class = if matches!(d, Dialog::NewHost(_)) {
+                "host-screen"
+            } else {
+                "dialog-overlay"
+            };
             rsx! {
                 div {
-                    class: "dialog-overlay",
+                    class: "{class}",
                     key: "{tag}",
                     DialogBody { dialog: d }
                 }

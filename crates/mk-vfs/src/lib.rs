@@ -36,6 +36,10 @@ use mk_core::host::{Entry, Host};
 #[async_trait]
 pub trait ReadStream: Send {
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, VfsError>;
+    /// Seek to an absolute byte offset and return the new position. The media
+    /// streamer uses this to serve HTTP `Range` requests without re-opening the
+    /// file (see the streaming spike in `docs/spikes.md`).
+    async fn seek(&mut self, pos: u64) -> Result<u64, VfsError>;
 }
 
 /// Streaming write handle (E7).

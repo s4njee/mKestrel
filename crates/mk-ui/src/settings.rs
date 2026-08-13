@@ -213,7 +213,7 @@ fn BrowsingSection() -> Element {
 
     rsx! {
         div { class: "settings-pane",
-            div { class: "settings-group", "BROWSING" }
+            div { class: "settings-group", "GENERAL" }
             SettingSwitch {
                 label: "show hidden files",
                 on: b.show_hidden_files,
@@ -277,7 +277,7 @@ fn KeysSection() -> Element {
                 onchange: move |_| { let mut s = store; s.toggle_strict_host_key(); },
             }
 
-            div { class: "settings-group", "KEYS & CREDENTIALS" }
+            div { class: "settings-group", "SECURITY & KEYS" }
             div { class: "keys-table-header",
                 span { class: "kcol-type t-col-header", "TYPE" }
                 span { class: "kcol-name t-col-header", "NAME · FINGERPRINT" }
@@ -457,7 +457,7 @@ fn CacheOfflineSection() -> Element {
                 div { class: "setting-label", "pinned files" }
                 span { class: "setting-value", "none pinned" }
             }
-            div { class: "settings-group", "CACHE" }
+            div { class: "settings-group", "STORAGE" }
             div { class: "setting-row",
                 div { class: "setting-label", "cache never clears pinned files" }
             }

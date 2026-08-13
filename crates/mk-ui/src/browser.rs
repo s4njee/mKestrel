@@ -8,8 +8,8 @@ use dioxus::prelude::*;
 
 use mk_core::fixtures::MIB;
 use mk_core::fmt::{
-    format_duration, format_mode_full, format_mode_octal, format_mtime, format_rate, format_size,
-    format_size_exact,
+    format_duration, format_mode_full, format_mode_octal, format_mode_symbolic, format_mtime,
+    format_rate, format_size, format_size_exact,
 };
 use mk_core::host::{Entry, EntryKind, Host, HostStatus, Protocol};
 use mk_core::job::{Direction, Job, JobState};
@@ -54,7 +54,6 @@ fn format_eta_opt(secs: Option<u64>) -> String {
 #[component]
 pub fn BrowserScreen() -> Element {
     let store = use_store();
-    let scrim_visible = store.selected_count() > 0;
     let offline = *store.offline.read();
 
     if store.hosts.read().is_empty() {
@@ -77,13 +76,26 @@ pub fn BrowserScreen() -> Element {
             PathBar {}
             div { class: "browser-body",
                 HostsRail {}
-                FileTable {}
-                Inspector {}
+                div { class: "browser-main",
+                    FileTable {}
+                    SelectionBar {}
+                    if offline {
+                        div { class: "offline-banner", "offline · jobs paused · pinned files still available" }
+                    }
+                    QueueStrip {}
+                }
             }
-            if offline {
-                div { class: "offline-banner", "offline · jobs paused · pinned files still available" }
+            if *store.details_open.read() {
+                div {
+                    class: "details-scrim",
+                    onclick: move |_| { let mut s = store; s.close_details(); },
+                    div {
+                        class: "details-sheet",
+                        onclick: move |ev| ev.stop_propagation(),
+                        Inspector {}
+                    }
+                }
             }
-            QueueStrip {}
             PhoneTabBar {}
             if *store.hosts_sheet.read() {
                 div {
@@ -96,10 +108,57 @@ pub fn BrowserScreen() -> Element {
                     }
                 }
             }
-            div {
-                class: "sheet-scrim",
-                class: if scrim_visible { "visible" } else { "" },
-                onclick: move |_| { let mut s = store; s.clear_selection(); },
+        }
+    }
+}
+
+/// Bottom selection action bar (design `03`): count + byte total, then the
+/// bulk actions. Empty when nothing is selected.
+#[component]
+fn SelectionBar() -> Element {
+    let store = use_store();
+    let count = store.selected_count();
+    if count == 0 {
+        return rsx! {};
+    }
+    let bytes = store.selected_bytes();
+    let single = count == 1;
+
+    rsx! {
+        div { class: "selection-bar",
+            div { class: "selection-summary",
+                span { class: "selection-count", "{count} selected" }
+                span { class: "selection-bytes", "{format_size(bytes)}" }
+            }
+            div { class: "spacer" }
+            AccentButton {
+                label: "Download",
+                onpress: move |_| { let mut s = store; s.bulk_enqueue(Direction::Up); },
+            }
+            OutlineButton {
+                label: "Play",
+                disabled: !single,
+                onpress: move |_| {
+                    let mut s = store;
+                    if let Some(e) = s.selected_entry() {
+                        s.play_in_vlc(&e);
+                    }
+                },
+            }
+            OutlineButton { label: "Copy to…", disabled: true }
+            OutlineButton {
+                label: "Rename",
+                disabled: !single,
+                onpress: move |_| {
+                    let mut s = store;
+                    if let Some(e) = s.selected_entry() {
+                        s.open_dialog(Dialog::Rename { from: e.name.clone(), to: e.name });
+                    }
+                },
+            }
+            DangerButton {
+                label: "Delete",
+                onpress: move |_| { let mut s = store; s.bulk_remove(); },
             }
         }
     }
@@ -172,7 +231,11 @@ fn PathBar() -> Element {
     rsx! {
         div { class: "path-bar",
             div { class: "path-crumbs",
-                span { class: "crumb-host", "{host.name}:" }
+                span {
+                    class: "crumb-host",
+                    onclick: move |_| { let mut s = store; s.show_connections(); },
+                    "{host.name}:"
+                }
                 for (seg, path, current) in crumbs {
                     span {
                         class: if current { "crumb-current" } else { "crumb-segment" },
@@ -210,72 +273,42 @@ fn PathBar() -> Element {
 }
 
 // ---------------------------------------------------------------------------
-// Hosts rail (E5-S2)
+// Hosts rail (E5-S2) — MOUNTS + PLACES + capacity
 // ---------------------------------------------------------------------------
-
-const RECENT: [&str; 5] = [
-    "/export/media/films",
-    "/export/media/films/4K_HDR",
-    "/export/media/photos",
-    "/export/photos/2026-08",
-    "/srv/www",
-];
-
-const PINNED: [(&str, &str); 3] = [
-    ("films.nfo", "4.1K"),
-    ("checksums.sha256", "812K"),
-    ("Dune.Part.Two.2024.mkv", "31.7G"),
-];
 
 #[component]
 fn HostsRail() -> Element {
     let store = use_store();
     let hosts = store.hosts.read().clone();
     let selected = store.selected_host_id.read().clone();
+    let active = store
+        .jobs
+        .read()
+        .iter()
+        .filter(|j| j.state != JobState::Done)
+        .count();
 
     rsx! {
         div { class: "hosts-rail",
-            div { class: "rail-header", "HOST | PROTO | FREE" }
-            for host in hosts {
+            div { class: "rail-section-label", "MOUNTS" }
+            for host in &hosts {
                 HostRow { host: host.clone(), selected: host.id == selected }
             }
-            div { class: "rail-section-label", "RECENT" }
-            for p in RECENT {
-                div { class: "recent-path", "{p}" }
+            div { class: "rail-section-label", "PLACES" }
+            div { class: "place-row", span { "Recent" } }
+            div { class: "place-row",
+                span { "Bookmarks" }
+                span { class: "place-count", "7" }
             }
-            div { class: "rail-section-label", "PINNED OFFLINE · 3" }
-            for (name, size) in PINNED {
-                div { class: "pinned-item",
-                    span { "{name}" }
-                    span { class: "pinned-size", "{size}" }
-                }
-            }
-            div { class: "rail-footer",
-                span {
-                    class: "rail-footer-verb accent",
-                    onclick: move |_| { let mut s = store; s.open_new_host(); },
-                    "[+] host"
-                }
-                span {
-                    class: "rail-footer-verb",
-                    onclick: move |_| {
-                        let mut s = store;
-                        let id = s.selected_host_id.read().clone();
-                        s.open_edit_host(&id);
-                    },
-                    "edit"
-                }
-                span {
-                    class: "rail-footer-verb",
-                    onclick: move |_| { let mut s = store; s.show_settings(SettingsSection::Keys); },
-                    "keys"
-                }
-                span {
-                    class: "rail-footer-verb",
-                    onclick: move |_| { let mut s = store; s.show_settings(SettingsSection::Transfers); },
-                    "prefs"
+            div {
+                class: "place-row",
+                onclick: move |_| { let mut s = store; s.show_queue(); },
+                span { "Transfers" }
+                if active > 0 {
+                    span { class: "place-badge", "{active}" }
                 }
             }
+            RailCapacity {}
         }
     }
 }
@@ -284,19 +317,11 @@ fn HostsRail() -> Element {
 fn HostRow(host: Host, selected: bool) -> Element {
     let store = use_store();
     let edit_id = host.id.clone();
-    let proto_class = match host.status {
-        HostStatus::Mounted => "host-proto mounted",
-        HostStatus::Stale => "host-proto stale",
-        _ => "host-proto",
-    };
-    let free = host
-        .free_bytes
-        .map(format_size)
-        .unwrap_or_else(|| "—".into());
-    let tree = if selected {
-        host_tree(&store.cwd.read())
-    } else {
-        Vec::new()
+    let dot = match host.status {
+        HostStatus::Mounted => "ok",
+        HostStatus::Unreachable => "error",
+        HostStatus::Stale => "warn",
+        HostStatus::Idle => "muted",
     };
 
     rsx! {
@@ -311,50 +336,31 @@ fn HostRow(host: Host, selected: bool) -> Element {
                 }
             },
             ondoubleclick: move |_| { let mut s = store; s.open_edit_host(&edit_id); },
-            span { class: "host-name", "{host.name}" }
-            span { class: proto_class, "{host.protocol.as_str()}" }
-            span { class: "host-free", "{free}" }
-        }
-        for (label, depth, current) in tree {
-            div { class: "host-tree",
-                div {
-                    class: if current { "tree-current" } else { "tree-dir" },
-                    style: "padding-left: {14 + depth * 10}px",
-                    "{label}"
-                }
+            span { class: "status-dot {dot}" }
+            div { class: "host-meta",
+                span { class: "host-name", "{host.name}" }
+                span { class: "host-sub", "{host.protocol.as_str()} · {host.address}" }
             }
         }
     }
 }
 
-/// Mock inline tree for the selected host: the current path segments (current
-/// dir highlighted) plus two sibling dirs at the parent level. Real lazy
-/// expansion is E5-S2 follow-on work.
-fn host_tree(cwd: &str) -> Vec<(String, u32, bool)> {
-    let mut items = Vec::new();
-    let segs: Vec<&str> = cwd
-        .trim_start_matches('/')
-        .split('/')
-        .filter(|s| !s.is_empty())
-        .collect();
-    if segs.is_empty() {
-        return items;
+#[component]
+fn RailCapacity() -> Element {
+    let store = use_store();
+    let selected = store.selected_host_id.read().clone();
+    let free = store
+        .hosts
+        .read()
+        .iter()
+        .find(|h| h.id == selected)
+        .and_then(|h| h.free_bytes)
+        .map(format_size)
+        .unwrap_or_else(|| "—".into());
+
+    rsx! {
+        div { class: "rail-capacity", span { "{free} free" } }
     }
-    for (i, seg) in segs.iter().enumerate() {
-        let current = i == segs.len() - 1;
-        let text = if current {
-            seg.to_string()
-        } else {
-            format!("{seg}/")
-        };
-        items.push((text, i as u32, current));
-    }
-    if segs.len() >= 2 {
-        for sib in ["photos", "music"] {
-            items.push((format!("{sib}/"), (segs.len() - 2) as u32, false));
-        }
-    }
-    items
 }
 
 // ---------------------------------------------------------------------------
@@ -423,15 +429,14 @@ fn TableHeader() -> Element {
     let size_caret = store.header_caret(SortKey::Size);
     let mtime_caret = store.header_caret(SortKey::Mtime);
     let mode_caret = store.header_caret(SortKey::Mode);
-    let owner_caret = store.header_caret(SortKey::Owner);
     rsx! {
         div { class: "table-header",
-            div { class: "col-indicator" }
-            span { class: "col-mode t-col-header", "MODE{mode_caret}" }
+            div { class: "col-check" }
+            div { class: "col-tile" }
             span { class: "col-name t-col-header", "NAME{name_caret}" }
             span { class: "col-size t-col-header", "SIZE{size_caret}" }
-            span { class: "col-mtime t-col-header", "MTIME{mtime_caret}" }
-            span { class: "col-owner t-col-header", "OWNER{owner_caret}" }
+            span { class: "col-mtime t-col-header", "MODIFIED{mtime_caret}" }
+            span { class: "col-mode t-col-header", "MODE{mode_caret}" }
         }
     }
 }
@@ -442,9 +447,13 @@ fn EntryRow(entry: Entry) -> Element {
     let name = entry.name.clone();
     let click_name = name.clone();
     let chevron_name = name.clone();
+    let long_press_name = name.clone();
     let is_dir = entry.kind == EntryKind::Dir;
     let selected = store.is_selected(&name);
     let downloading = store.running_down_for(&name);
+    // Long-press → details sheet. `lp_fired` suppresses the tap that follows.
+    let lp_cancel = use_signal(|| false);
+    let lp_fired = use_signal(|| false);
 
     let row_class = classes(&[
         "row",
@@ -466,7 +475,13 @@ fn EntryRow(entry: Entry) -> Element {
         if entry.is_hidden { "dotfile-name" } else { "" },
         if selected { "accent-cell" } else { "" },
     ]);
-    let size_class = classes(&["col-size", if selected { "accent-cell" } else { "" }]);
+    let size_class = classes(&[
+        "col-size",
+        "t-data-cell",
+        if selected { "accent-cell" } else { "" },
+    ]);
+    let tile = tile_label(&entry);
+    let tile_cls = tile_class(&entry);
 
     let name_cell = match entry.kind {
         EntryKind::Dir => format!("{}/", entry.name),
@@ -485,28 +500,57 @@ fn EntryRow(entry: Entry) -> Element {
         EntryKind::Symlink => "link".into(),
         EntryKind::File => format_size(entry.size_bytes),
     };
+    let mode = format_mode_symbolic(entry.mode, entry.kind);
 
     rsx! {
         div {
             class: "{row_class}",
+            onpointerdown: move |_| {
+                let mut c = lp_cancel;
+                *c.write() = false;
+                let mut f = lp_fired;
+                *f.write() = false;
+                let s = store;
+                let n = long_press_name.clone();
+                spawn(async move {
+                    tokio::time::sleep(Duration::from_millis(500)).await;
+                    let c2 = c;
+                    if !*c2.read() {
+                        let mut f2 = f;
+                        *f2.write() = true;
+                        let mut s2 = s;
+                        s2.open_details(&n);
+                    }
+                });
+            },
+            onpointerup: move |_| { let mut c = lp_cancel; *c.write() = true; },
+            onpointercancel: move |_| { let mut c = lp_cancel; *c.write() = true; },
+            onpointerleave: move |_| { let mut c = lp_cancel; *c.write() = true; },
             onclick: move |_| {
+                if *lp_fired.read() {
+                    let mut f = lp_fired;
+                    *f.write() = false;
+                    return;
+                }
                 let mut s = store;
-                // First tap selects (inspector opens); a second tap on the
-                // already-selected directory navigates into it. Selection-based
-                // rather than native `dblclick`, which the re-render between
-                // taps resets.
+                // First tap selects; a second tap on the already-selected
+                // directory navigates into it.
                 if is_dir && s.is_selected(&click_name) {
                     s.open_dir(&click_name);
                 } else {
                     s.select_only(&click_name);
                 }
             },
-            div { class: "col-indicator",
-                if is_dir {
-                    div { class: "dir-indicator" }
-                }
+            div {
+                class: if selected { "check check-on" } else { "check" },
+                onclick: move |ev| {
+                    ev.stop_propagation();
+                    let mut s = store;
+                    s.toggle_select(&name);
+                },
+                if selected { span { "✓" } }
             }
-            span { class: "{mode_class}", "{format_mode_octal(entry.mode)}" }
+            div { class: "tile {tile_cls}", "{tile}" }
             span { class: "col-name",
                 div { class: "{name_class}",
                     "{name_cell}"
@@ -531,9 +575,58 @@ fn EntryRow(entry: Entry) -> Element {
             }
             span { class: "{size_class}", "{size_text}" }
             span { class: "col-mtime t-data-cell", "{format_mtime(entry.mtime)}" }
-            span { class: "col-owner t-data-cell", "{entry.owner_label}" }
+            span { class: "{mode_class}", "{mode}" }
         }
     }
+}
+
+/// 3-letter type code for a row's 44px tile (design `03`).
+fn tile_label(entry: &Entry) -> &'static str {
+    match entry.kind {
+        EntryKind::Dir => "DIR",
+        EntryKind::Symlink => "LNK",
+        EntryKind::File => {
+            let e = ext(entry);
+            match e.as_str() {
+                "mp4" | "mkv" | "mov" | "avi" | "webm" | "m4v" | "ts" | "mpg" | "mpeg" => "MOV",
+                "wav" | "mp3" | "flac" | "m4a" | "aac" | "ogg" | "opus" => "WAV",
+                "jpg" | "jpeg" | "png" | "gif" | "webp" | "heic" => "JPG",
+                "conf" | "cfg" | "ini" | "toml" | "yaml" | "yml" | "json" | "env" | "nfo" => "CFG",
+                "log" => "LOG",
+                "txt" | "md" | "rst" => "TXT",
+                _ => "FILE",
+            }
+        }
+    }
+}
+
+/// Tile tint: DIR accent, CFG amber, symlinks tertiary, everything else
+/// secondary (design `03`).
+fn tile_class(entry: &Entry) -> &'static str {
+    match entry.kind {
+        EntryKind::Dir => "tile-accent",
+        EntryKind::Symlink => "tile-tertiary",
+        EntryKind::File => {
+            let e = ext(entry);
+            if matches!(
+                e.as_str(),
+                "conf" | "cfg" | "ini" | "toml" | "yaml" | "yml" | "json" | "env" | "nfo"
+            ) {
+                "tile-warn"
+            } else {
+                "tile-secondary"
+            }
+        }
+    }
+}
+
+fn ext(entry: &Entry) -> String {
+    entry
+        .name
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_ascii_lowercase()
 }
 
 /// Skeleton rows while a listing loads — never a blank pane (E5-S5).
@@ -542,12 +635,12 @@ fn SkeletonRows() -> Element {
     rsx! {
         for _ in 0..9u32 {
             div { class: "row",
-                div { class: "col-indicator" }
-                span { class: "col-mode", div { class: "skeleton-block", style: "width: 40px" } }
+                div { class: "col-check" }
+                div { class: "col-tile", div { class: "skeleton-block", style: "width: 44px" } }
                 span { class: "col-name", div { class: "skeleton-block", style: "width: 55%" } }
-                span { class: "col-size", div { class: "skeleton-block", style: "width: 48px" } }
-                span { class: "col-mtime", div { class: "skeleton-block", style: "width: 70px" } }
-                span { class: "col-owner", div { class: "skeleton-block", style: "width: 56px" } }
+                span { class: "col-size", div { class: "skeleton-block", style: "width: 70px" } }
+                span { class: "col-mtime", div { class: "skeleton-block", style: "width: 120px" } }
+                span { class: "col-mode", div { class: "skeleton-block", style: "width: 80px" } }
             }
         }
     }
@@ -676,12 +769,17 @@ fn Inspector() -> Element {
         }
     });
 
-    let sheet_open = store.selected_count() > 0;
-
     rsx! {
-        div {
-            class: classes(&["inspector", if sheet_open { "sheet-open" } else { "" }]),
-            div { class: "inspector-header", "INSPECTOR" }
+        div { class: "inspector",
+            div { class: "inspector-header",
+                span { "DETAILS" }
+                div { class: "spacer" }
+                span {
+                    class: "inspector-close",
+                    onclick: move |_| { let mut s = store; s.close_details(); },
+                    "✕"
+                }
+            }
             if let Some(e) = entry.clone() {
                 div { class: "inspector-preview",
                     if let Some(css) = &thumb {
@@ -779,6 +877,18 @@ fn InspectorActions(entry: Entry, host: Host) -> Element {
                     if let Some(e) = s.selected_entry() {
                         if e.kind == EntryKind::File {
                             s.enqueue(primary_dir, &e);
+                        }
+                    }
+                },
+            }
+            OutlineButton {
+                label: "PLAY",
+                disabled: !is_file,
+                onpress: move |_| {
+                    let mut s = store;
+                    if let Some(e) = s.selected_entry() {
+                        if e.kind == EntryKind::File {
+                            s.play_in_vlc(&e);
                         }
                     }
                 },

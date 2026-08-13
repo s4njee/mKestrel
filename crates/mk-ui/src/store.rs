@@ -16,7 +16,7 @@ use mk_core::host::{AuthMethod, Entry, EntryKind, Host, HostOptions, HostStatus,
 use mk_core::job::{Direction, Job, JobState};
 use mk_core::settings::{Settings, SortDir, SortKey, SortSpec};
 
-use crate::backend::{EmptyBackend, FsBackend, PasswordVault, TransferProgress};
+use crate::backend::{EmptyBackend, FsBackend, PasswordVault, StreamAction, TransferProgress};
 use crate::mock;
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedReceiver};
 
@@ -26,6 +26,7 @@ static JOB_SEQ: AtomicU64 = AtomicU64::new(0);
 /// Top-level screen (E2-S1 routing is a later epic; this is the switcher).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Screen {
+    Connections,
     Browser,
     Queue,
     Settings,
@@ -47,13 +48,13 @@ pub enum SettingsSection {
 impl SettingsSection {
     pub fn label(self) -> &'static str {
         match self {
-            SettingsSection::Transfers => "transfers",
-            SettingsSection::Browsing => "browsing",
-            SettingsSection::Keys => "keys & credentials",
-            SettingsSection::KnownHosts => "known hosts",
-            SettingsSection::CacheOffline => "cache & offline",
-            SettingsSection::Appearance => "appearance",
-            SettingsSection::About => "about",
+            SettingsSection::Transfers => "Transfers",
+            SettingsSection::Browsing => "General",
+            SettingsSection::Keys => "Security & keys",
+            SettingsSection::KnownHosts => "Known hosts",
+            SettingsSection::CacheOffline => "Storage",
+            SettingsSection::Appearance => "Appearance",
+            SettingsSection::About => "About",
         }
     }
 }
@@ -277,6 +278,8 @@ pub struct Store {
     pub dialog: Signal<Option<Dialog>>,
     /// Error surfaced in the open (small) dialog, set by submit_dialog.
     pub dialog_error: Signal<Option<String>>,
+    /// Long-press details sheet open (file metadata + actions).
+    pub details_open: Signal<bool>,
     /// Injected filesystem backend (E4); swap the Arc to swap the backend.
     pub backend: Signal<Arc<dyn FsBackend>>,
     /// Shared host-password store supplied by the app (E4-S6).
@@ -284,6 +287,8 @@ pub struct Store {
     /// Shared bandwidth cap (bytes/s), supplied by the app; written here so the
     /// LIMIT setting applies live to the transfer engine (E7-S1).
     pub cap: Signal<Arc<AtomicU64>>,
+    /// "Play in VLC" callback, supplied by the app (loopback stream + launch).
+    pub stream_action: Signal<StreamAction>,
     /// Lazy inspector metadata (E6-S2), keyed to the focused entry.
     pub inspector_codec: Signal<Option<String>>,
     pub inspector_sha256: Signal<Option<String>>,
@@ -303,6 +308,8 @@ pub fn StoreProvider(children: Element, initial: Screen, store_path: Option<Stri
     });
     let cap = try_consume_context::<Arc<AtomicU64>>()
         .unwrap_or_else(|| Arc::new(AtomicU64::new(20 * 1024 * 1024)));
+    let stream_action = try_consume_context::<StreamAction>()
+        .unwrap_or_else(|| StreamAction::new(|_: String, _: String| {}));
     // Restore persisted state if present (E3-S3); `running` jobs come back
     // `waiting`. `--local` always starts at the device root.
     let mut seeded = store_path
@@ -342,9 +349,11 @@ pub fn StoreProvider(children: Element, initial: Screen, store_path: Option<Stri
         rate_history: use_signal(rate_history_init),
         dialog: use_signal(|| None),
         dialog_error: use_signal(|| None),
+        details_open: use_signal(|| false),
         backend: use_signal(|| backend),
         vault: use_signal(|| vault),
         cap: use_signal(|| cap),
+        stream_action: use_signal(|| stream_action),
         inspector_codec: use_signal(|| None),
         inspector_sha256: use_signal(|| None),
         inspector_thumb: use_signal(|| None),
@@ -963,6 +972,16 @@ impl Store {
         }
     }
 
+    /// Long-press a row: focus it and open the details sheet.
+    pub fn open_details(&mut self, name: &str) {
+        self.select_only(name);
+        *self.details_open.write() = true;
+    }
+
+    pub fn close_details(&mut self) {
+        *self.details_open.write() = false;
+    }
+
     // ------------------------------------------------------------------
     // Sort / filter
     // ------------------------------------------------------------------
@@ -1006,6 +1025,74 @@ impl Store {
         });
     }
 
+    /// Enqueue every selected file for a transfer (bulk get/put).
+    pub fn bulk_enqueue(&mut self, direction: Direction) {
+        let host = self.selected_host_id.read().clone();
+        let cwd = self.cwd.read().clone();
+        let sel = self.selection.read().clone();
+        let entries: Vec<Entry> = self
+            .current_listing()
+            .into_iter()
+            .filter(|e| sel.contains(&e.name) && e.kind == EntryKind::File)
+            .collect();
+        let mut jobs = self.jobs.write();
+        for entry in entries {
+            jobs.push(Job {
+                id: format!("job-{}-{}", entry.name, JOB_SEQ.fetch_add(1, Ordering::Relaxed)),
+                direction,
+                name: entry.name.clone(),
+                host_id: host.clone(),
+                remote_path: format!("{}/{}", cwd.trim_end_matches('/'), entry.name),
+                local_path: format!("/Downloads/{}", entry.name),
+                bytes_done: 0,
+                bytes_total: entry.size_bytes,
+                rate_bytes_per_s: 0.0,
+                eta_seconds: None,
+                state: JobState::Waiting,
+                attempt: 0,
+                max_attempts: 3,
+                errno: None,
+                message: None,
+                finished_at: None,
+                verified: None,
+            });
+        }
+        self.selection.write().clear();
+    }
+
+    /// Remove every selected entry through the backend (bulk delete).
+    pub fn bulk_remove(&mut self) {
+        let host = self.selected_host();
+        let cwd = self.cwd.read().clone();
+        let sel = self.selection.read().clone();
+        let entries: Vec<Entry> = self
+            .current_listing()
+            .into_iter()
+            .filter(|e| sel.contains(&e.name))
+            .collect();
+        self.selection.write().clear();
+        let this = *self;
+        spawn(async move {
+            let mut this = this;
+            let backend = this.backend.read().clone();
+            for e in entries {
+                let path = format!("{}/{}", cwd.trim_end_matches('/'), e.name);
+                let _ = backend.remove(&host, &path).await;
+            }
+            this.reload();
+        });
+    }
+
+    /// Stream the focused file into VLC via the app's loopback media server
+    /// (no copy to disk). A no-op when the app didn't inject a stream action.
+    pub fn play_in_vlc(&mut self, entry: &Entry) {
+        let host_id = self.selected_host_id.read().clone();
+        let cwd = self.cwd.read().clone();
+        let remote_path = format!("{}/{}", cwd.trim_end_matches('/'), entry.name);
+        let action = self.stream_action.read().clone();
+        action.call(host_id, remote_path);
+    }
+
     // ------------------------------------------------------------------
     // Queue actions (E7)
     // ------------------------------------------------------------------
@@ -1016,6 +1103,19 @@ impl Store {
 
     pub fn show_browser(&mut self) {
         self.screen.set(Screen::Browser);
+    }
+
+    pub fn show_connections(&mut self) {
+        self.screen.set(Screen::Connections);
+    }
+
+    /// Open a saved connection: mount it and enter its browser. If the host
+    /// needs a password first, the prompt stays over the connections screen.
+    pub fn open_host(&mut self, id: &str) {
+        self.select_host(id.to_string());
+        if *self.selected_host_id.read() == id {
+            self.screen.set(Screen::Browser);
+        }
     }
 
     pub fn show_settings(&mut self, section: SettingsSection) {

@@ -7,6 +7,7 @@
 pub mod backend;
 pub mod browser;
 pub mod components;
+pub mod connections;
 pub mod dev;
 pub mod dialogs;
 #[cfg(debug_assertions)]
@@ -18,9 +19,10 @@ pub mod settings;
 pub mod store;
 pub mod tokens;
 
-pub use backend::{BackendFactory, EmptyBackend, FsBackend, PasswordVault};
+pub use backend::{BackendFactory, EmptyBackend, FsBackend, PasswordVault, StreamAction};
 pub use browser::BrowserScreen;
 pub use components::*;
+pub use connections::ConnectionsScreen;
 #[cfg(debug_assertions)]
 pub use dev::DevDrawer;
 #[cfg(debug_assertions)]

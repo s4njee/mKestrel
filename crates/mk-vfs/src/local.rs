@@ -99,10 +99,23 @@ impl VfsBackend for LocalBackend {
     }
 
     async fn read_range(&self, path: &str, offset: u64, len: u64) -> Result<Vec<u8>, VfsError> {
-        let data = fs::read(path).map_err(|e| io_err(path, e))?;
-        let start = (offset as usize).min(data.len());
-        let end = (offset.saturating_add(len) as usize).min(data.len());
-        Ok(data[start..end].to_vec())
+        // True ranged read (open + seek + read `len`), not a whole-file read.
+        let mut file = fs::File::open(path).map_err(|e| io_err(path, e))?;
+        use std::io::{Read, Seek, SeekFrom};
+        file.seek(SeekFrom::Start(offset))
+            .map_err(|e| io_err(path, e))?;
+        let want = len.min(u32::MAX as u64) as usize;
+        let mut buf = vec![0u8; want];
+        let mut filled = 0;
+        while filled < want {
+            match file.read(&mut buf[filled..]) {
+                Ok(0) => break,
+                Ok(n) => filled += n,
+                Err(e) => return Err(io_err(path, e)),
+            }
+        }
+        buf.truncate(filled);
+        Ok(buf)
     }
 
     async fn open_read(&self, path: &str) -> Result<Box<dyn ReadStream>, VfsError> {
@@ -174,6 +187,13 @@ impl ReadStream for FileReader {
         use std::io::Read;
         self.file
             .read(buf)
+            .map_err(|e| VfsError::new(VfsErrorKind::Io, e.to_string()))
+    }
+
+    async fn seek(&mut self, pos: u64) -> Result<u64, VfsError> {
+        use std::io::{Seek, SeekFrom};
+        self.file
+            .seek(SeekFrom::Start(pos))
             .map_err(|e| VfsError::new(VfsErrorKind::Io, e.to_string()))
     }
 }
@@ -283,6 +303,25 @@ mod tests {
             .unwrap();
         assert_eq!(bytes.len(), 10);
         assert!(bytes.iter().all(|b| *b == 0xAB));
+
+        fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[tokio::test]
+    async fn open_read_seek_reads_at_offset() {
+        let root = temp_dir("seek");
+        let root_s = root.to_string_lossy().into_owned();
+        let mut f = fs::File::create(root.join("data.bin")).unwrap();
+        f.write_all(&(0u8..=200).collect::<Vec<_>>()).unwrap();
+
+        let backend = LocalBackend;
+        let mut r = backend.open_read(&format!("{root_s}/data.bin")).await.unwrap();
+        let pos = r.seek(100).await.unwrap();
+        assert_eq!(pos, 100);
+        let mut buf = [0u8; 5];
+        let n = r.read(&mut buf).await.unwrap();
+        assert_eq!(n, 5);
+        assert_eq!(&buf, &[100, 101, 102, 103, 104]);
 
         fs::remove_dir_all(&root).unwrap();
     }

@@ -127,3 +127,26 @@ pub type BackendFactory =
 /// UI can prompt for and update passwords at connect time (E4-S6).
 pub type PasswordVault =
     std::sync::Arc<std::sync::Mutex<std::collections::HashMap<String, String>>>;
+
+/// "Play in VLC" action injected by the app. Given a host id and a remote
+/// path, the app builds a loopback stream URL and opens it — desktop spawns
+/// `vlc <url>`, mobile uses an intent/`vlc-x-callback`. `mk-ui` stays
+/// platform-agnostic; it only invokes the callback.
+#[derive(Clone)]
+pub struct StreamAction(std::sync::Arc<dyn Fn(String, String) + Send + Sync>);
+
+impl std::fmt::Debug for StreamAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("StreamAction")
+    }
+}
+
+impl StreamAction {
+    pub fn new<F: Fn(String, String) + Send + Sync + 'static>(f: F) -> Self {
+        StreamAction(std::sync::Arc::new(f))
+    }
+
+    pub fn call(&self, host_id: String, path: String) {
+        (self.0)(host_id, path);
+    }
+}

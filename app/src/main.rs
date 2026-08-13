@@ -5,14 +5,16 @@
 //! (1194×834), injects the design-system CSS and the filesystem backend, and
 //! launches the Dioxus app. On iOS/Android the webview is full-screen.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, AtomicU64};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU16, AtomicU64, Ordering};
+use std::sync::{Arc, RwLock};
 
 use async_trait::async_trait;
 use dioxus::prelude::*;
 
-use mk_core::host::{AuthMethod, Entry};
+use mk_core::host::{AuthMethod, Entry, Host};
+use mk_media::{HostResolver, MediaServer};
 use mk_ui::backend::{ProbeLine, TransferProgress};
 use mk_ui::{FsBackend, Root};
 
@@ -238,7 +240,12 @@ fn default_key_path() -> PathBuf {
     }
 }
 
-fn make_backend(vault: mk_ui::PasswordVault, cap: Arc<AtomicU64>) -> Arc<dyn FsBackend> {
+struct AppServices {
+    backend: Arc<dyn FsBackend>,
+    pool: Arc<mk_vfs::ConnectionPool>,
+}
+
+fn make_services(vault: mk_ui::PasswordVault, cap: Arc<AtomicU64>) -> AppServices {
     // The SFTP backends read the shared host-password store at connect time,
     // so a correction just works. The caller owns one vault and passes it both
     // here and (as context) to the UI, so both sides see the same passwords.
@@ -292,7 +299,45 @@ fn make_backend(vault: mk_ui::PasswordVault, cap: Arc<AtomicU64>) -> Arc<dyn FsB
         vfs
     }));
     mk_vfs::spawn_pool_reaper(pool.clone(), std::time::Duration::from_secs(15));
-    Arc::new(BackendAdapter { pool, limiter })
+    AppServices {
+        backend: Arc::new(BackendAdapter { pool: pool.clone(), limiter }),
+        pool,
+    }
+}
+
+/// Shared host lookup (host id -> `Host`) for the media server. Seeded from the
+/// persisted store at launch; the store holds every host the user has added.
+type HostRegistry = Arc<RwLock<HashMap<String, Host>>>;
+
+fn build_host_registry(store_path: Option<&str>) -> HostRegistry {
+    let hosts = store_path
+        .and_then(|p| mk_core::persistence::load(std::path::Path::new(p)).ok())
+        .map(|s| s.hosts)
+        .unwrap_or_default();
+    Arc::new(RwLock::new(
+        hosts.into_iter().map(|h| (h.id.clone(), h)).collect(),
+    ))
+}
+
+fn host_resolver(registry: HostRegistry) -> HostResolver {
+    Arc::new(move |id| registry.read().unwrap().get(id).cloned())
+}
+
+/// Launch VLC against a loopback stream URL. Desktop-only; mobile uses an
+/// intent / `vlc-x-callback` handoff (a separate slice).
+fn open_vlc(url: &str) {
+    #[cfg(not(any(target_os = "ios", target_os = "android")))]
+    {
+        match std::process::Command::new("vlc").arg(url).spawn() {
+            Ok(_) => log::info!("opened {url} in VLC"),
+            Err(e) => log::error!("failed to launch VLC: {e}"),
+        }
+    }
+    #[cfg(any(target_os = "ios", target_os = "android"))]
+    {
+        let _ = url;
+        log::warn!("VLC handoff not implemented on mobile yet");
+    }
 }
 
 #[allow(non_snake_case)] // dioxus root component
@@ -315,19 +360,59 @@ fn App() -> Element {
     // Shared bandwidth cap (bytes/s); the UI writes it live, the limiter reads it.
     let cap: Arc<AtomicU64> = Arc::new(AtomicU64::new(20 * 1024 * 1024));
 
+    // Backend + its connection pool, and the loopback media server that streams
+    // any host's files to VLC without copying to disk. Both share one pool so a
+    // stream reuses the same live connection as browsing/transfers.
+    let services = make_services(vault.clone(), cap.clone());
+    let media = Arc::new(MediaServer::new(
+        services.pool.clone(),
+        host_resolver(build_host_registry(store_path.as_deref())),
+    ));
+    let media_port = Arc::new(AtomicU16::new(0));
+    {
+        let media = media.clone();
+        let media_port = media_port.clone();
+        tokio::spawn(async move {
+            match media.bind_local().await {
+                Ok((addr, serve)) => {
+                    media_port.store(addr.port(), Ordering::Relaxed);
+                    log::info!("media server listening on {addr}");
+                    let _ = serve.await;
+                }
+                Err(e) => log::error!("media server bind failed: {e}"),
+            }
+        });
+    }
+
     let vault_for_ctx = vault.clone();
     use_context_provider(move || vault_for_ctx.clone());
     let cap_for_ctx = cap.clone();
     use_context_provider(move || cap_for_ctx.clone());
-    let vault_for_backend = vault.clone();
-    let cap_for_backend = cap.clone();
-    use_context_provider(move || make_backend(vault_for_backend.clone(), cap_for_backend.clone()));
+    let backend_for_ctx = services.backend.clone();
+    use_context_provider(move || backend_for_ctx.clone());
+    // "Play in VLC": build a loopback stream URL and hand it to VLC. The UI
+    // calls this with (host_id, remote_path); the launch is desktop-only.
+    let stream_action: mk_ui::StreamAction = {
+        let media = media.clone();
+        let media_port = media_port.clone();
+        mk_ui::StreamAction::new(move |host_id: String, path: String| {
+            let port = media_port.load(Ordering::Relaxed);
+            if port == 0 {
+                log::error!("media server not ready");
+                return;
+            }
+            open_vlc(&media.stream_url(port, &host_id, &path));
+        })
+    };
+    let stream_action_for_ctx = stream_action.clone();
+    use_context_provider(move || stream_action_for_ctx.clone());
 
     // Let the dev drawer swap backends (E0-S4).
     let vault_for_factory = vault.clone();
     let cap_for_factory = cap.clone();
-    let factory: mk_ui::BackendFactory =
-        Arc::new(move |_| make_backend(vault_for_factory.clone(), cap_for_factory.clone()));
+    let factory: mk_ui::BackendFactory = Arc::new(move |_| {
+        make_services(vault_for_factory.clone(), cap_for_factory.clone()).backend
+    });
     use_context_provider(move || factory.clone());
 
     rsx! {

@@ -6,6 +6,7 @@
 use dioxus::prelude::*;
 
 use crate::browser::BrowserScreen;
+use crate::connections::ConnectionsScreen;
 use crate::dialogs::DialogOverlay;
 #[cfg(debug_assertions)]
 use crate::gallery::Gallery;
@@ -49,7 +50,7 @@ pub fn Root(
     rsx! {
         div { class: "app-root",
             StoreProvider {
-                initial: if queue_start { Screen::Queue } else { Screen::Browser },
+                initial: if queue_start { Screen::Queue } else { Screen::Connections },
                 store_path: store_path,
                 StatusStrip {}
                 if demo {
@@ -127,6 +128,7 @@ fn ScreenRoot(
         div {
             class: if dialog_open { "screen-surface dimmed" } else { "screen-surface" },
             {match screen {
+                Screen::Connections => rsx! { ConnectionsScreen {} },
                 Screen::Browser => rsx! { BrowserScreen {} },
                 Screen::Queue => rsx! { QueueScreen {} },
                 Screen::Settings => rsx! { SettingsScreen {} },

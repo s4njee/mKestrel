@@ -6,6 +6,7 @@ members = [
     "crates/mk-vfs",
     "crates/mk-transfer",
     "crates/mk-secrets",
+    "crates/mk-media",
     "crates/mk-ui",
 ]
 
@@ -21,6 +22,7 @@ mk-core = { path = "crates/mk-core", version = "0.1.0" }
 mk-vfs = { path = "crates/mk-vfs", version = "0.1.0" }
 mk-transfer = { path = "crates/mk-transfer", version = "0.1.0" }
 mk-secrets = { path = "crates/mk-secrets", version = "0.1.0" }
+mk-media = { path = "crates/mk-media", version = "0.1.0" }
 mk-ui = { path = "crates/mk-ui", version = "0.1.0" }
 
 # Dioxus 0.7.x line (pinned at kickoff per plan.md §1).

@@ -5,20 +5,20 @@
 //! enforces that over time.
 
 pub mod color {
-    pub const BG: &str = "#0b0c0c";
-    pub const BG_ALT: &str = "#0e100f";
-    pub const BG_STRIP: &str = "#0d0f0e";
-    pub const TEXT: &str = "#eef1f0";
-    pub const ACCENT: &str = "#00c48f";
-    pub const ACCENT_ON: &str = "#0b0f0e";
-    pub const ACCENT_WASH: &str = "rgba(0,196,143,.06)";
-    pub const WARN: &str = "#e0a83c";
-    pub const ERROR: &str = "#e07a6a";
-    pub const HAIRLINE: &str = "rgba(255,255,255,.07)";
-    pub const BORDER_CTL: &str = "rgba(255,255,255,.12)";
-    pub const PROGRESS_TRACK: &str = "rgba(255,255,255,.08)";
-    pub const PREVIEW_STRIPE_1: &str = "#141615";
-    pub const PREVIEW_STRIPE_2: &str = "#101211";
+    pub const BG: &str = "#171512";
+    pub const BG_ALT: &str = "#1b1814";
+    pub const BG_STRIP: &str = "#171512";
+    pub const TEXT: &str = "#ede8e0";
+    pub const ACCENT: &str = "#3b6fe0";
+    pub const ACCENT_ON: &str = "#ffffff";
+    pub const ACCENT_WASH: &str = "rgba(59,111,224,.10)";
+    pub const WARN: &str = "#c9803a";
+    pub const ERROR: &str = "#d08a6a";
+    pub const HAIRLINE: &str = "#221e19";
+    pub const BORDER_CTL: &str = "#353028";
+    pub const PROGRESS_TRACK: &str = "#2a251f";
+    pub const PREVIEW_STRIPE_1: &str = "#1f1c18";
+    pub const PREVIEW_STRIPE_2: &str = "#1b1814";
 }
 
 /// The text-alpha steps, used where a value needs a specific dimming level.

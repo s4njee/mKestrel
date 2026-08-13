@@ -5,7 +5,7 @@
 
 use dioxus::prelude::*;
 
-use mk_core::fmt::{format_eta, format_mtime, format_rate, format_size};
+use mk_core::fmt::{format_mtime, format_rate, format_size};
 use mk_core::job::{Direction, Job, JobState};
 
 use crate::components::*;
@@ -54,7 +54,7 @@ fn QueueHeader() -> Element {
                 onclick: move |_| { let mut s = store; s.show_browser(); },
                 "←"
             }
-            span { class: "queue-title", "queue" }
+            span { class: "queue-title", "Transfers" }
             span { class: "queue-counts",
                 "{running} running · {waiting} waiting · {failed} failed · {done} done today"
             }
@@ -142,31 +142,45 @@ fn QueueRow(job: Job) -> Element {
     let arrow = job.direction.arrow();
 
     match job.state {
-        JobState::Running => rsx! {
-            div { class: "queue-row active",
-                span { class: "col-dir accent-cell", "{arrow}" }
-                span { class: "col-qfile", "{job.name}" }
-                span { class: "col-qhost", "{host}:{mock::dir_of(&job.remote_path)}" }
-                span { class: "col-qrate", "{format_rate(job.rate_bytes_per_s)}" }
-                span { class: "col-qeta", "{format_eta_opt(job.eta_seconds)}" }
-                span { class: "col-qprog accent-cell", "{format_size(job.bytes_done)}/{format_size(job.bytes_total)}" }
-                div { class: "queue-row-bar", ProgressBar { percent: job_pct(&job) } }
-            }
-        },
-        JobState::Waiting => rsx! {
-            div { class: "queue-row",
-                span { class: "col-dir" }
-                span { class: "col-qfile dim", "{job.name}" }
-                span { class: "col-qhost dim", "{host}:{mock::dir_of(&job.remote_path)}" }
-                span {
-                    class: "col-qrate",
-                    class: if host_down { "warn-text" } else { "dim" },
-                    if host_down { "host down" } else { "waiting" }
+        JobState::Running => {
+            let cancel_id = job.id.clone();
+            rsx! {
+                div { class: "queue-row active",
+                    span { class: "col-dir accent-cell", "{arrow}" }
+                    span { class: "col-qfile", "{job.name}" }
+                    span { class: "col-qhost", "{host}:{mock::dir_of(&job.remote_path)}" }
+                    span { class: "col-qrate", "{format_rate(job.rate_bytes_per_s)}" }
+                    span {
+                        class: "col-qeta cancel",
+                        onclick: move |_| { let mut s = store; s.cancel_job(&cancel_id); },
+                        "cancel"
+                    }
+                    span { class: "col-qprog accent-cell", "{format_size(job.bytes_done)}/{format_size(job.bytes_total)}" }
+                    div { class: "queue-row-bar", ProgressBar { percent: job_pct(&job) } }
                 }
-                span { class: "col-qeta dim", "—" }
-                span { class: "col-qprog dim", "0/{format_size(job.bytes_total)}" }
             }
-        },
+        }
+        JobState::Waiting => {
+            let cancel_id = job.id.clone();
+            rsx! {
+                div { class: "queue-row",
+                    span { class: "col-dir" }
+                    span { class: "col-qfile dim", "{job.name}" }
+                    span { class: "col-qhost dim", "{host}:{mock::dir_of(&job.remote_path)}" }
+                    span {
+                        class: "col-qrate",
+                        class: if host_down { "warn-text" } else { "dim" },
+                        if host_down { "host down" } else { "waiting" }
+                    }
+                    span {
+                        class: "col-qeta cancel",
+                        onclick: move |_| { let mut s = store; s.cancel_job(&cancel_id); },
+                        "cancel"
+                    }
+                    span { class: "col-qprog dim", "0/{format_size(job.bytes_total)}" }
+                }
+            }
+        }
         JobState::Failed => {
             let retry_id = job.id.clone();
             let skip_id = job.id.clone();
@@ -217,13 +231,6 @@ fn QueueRow(job: Job) -> Element {
                 div { class: "queue-row-bar", ProgressBar { percent: job_pct(&job) } }
             }
         },
-    }
-}
-
-fn format_eta_opt(secs: Option<u64>) -> String {
-    match secs {
-        Some(s) => format_eta(s),
-        None => "—".to_string(),
     }
 }
 

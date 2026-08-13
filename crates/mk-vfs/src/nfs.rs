@@ -301,6 +301,11 @@ const NFS_READ_CHUNK: usize = 32 * 1024;
 
 #[async_trait]
 impl ReadStream for NfsReader {
+    async fn seek(&mut self, pos: u64) -> Result<u64, VfsError> {
+        self.pos = pos;
+        Ok(pos)
+    }
+
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, VfsError> {
         // Clone the mount handle so we don't hold the mutex across the RPC —
         // a 1 MiB transfer would otherwise stall listing/statfs.

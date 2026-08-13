@@ -3,6 +3,7 @@
 //! agent-style (key file). Host-key verification against the known-hosts
 //! store is the E4-S3 trust-flow follow-up (accept for now, fingerprint-logged).
 
+use std::io::SeekFrom;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -11,7 +12,7 @@ use async_trait::async_trait;
 use mk_core::host::{Entry, EntryKind, Host};
 use russh::client::{self, Handle};
 use russh::keys::load_secret_key;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
 use crate::error::{VfsError, VfsErrorKind};
 use crate::{ProbeLine, ProbeReport, ReadStream, StatFs, VfsBackend, WriteStream};
@@ -246,16 +247,33 @@ impl VfsBackend for SftpBackend {
     }
 
     async fn read_range(&self, path: &str, offset: u64, len: u64) -> Result<Vec<u8>, VfsError> {
+        // True ranged read (open + seek + read exactly `len`), not a whole-file
+        // `read` that slices — a multi-GB file would otherwise be buffered in
+        // full for a small preview.
         let mut guard = self.lock_session(path).await?;
         let conn = guard.as_mut().unwrap();
-        let data = conn
+        let mut file = conn
             .session
-            .read(path)
+            .open(path)
             .await
             .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")).with_path(path))?;
-        let start = (offset as usize).min(data.len());
-        let end = (offset.saturating_add(len) as usize).min(data.len());
-        Ok(data[start..end].to_vec())
+        file.seek(SeekFrom::Start(offset))
+            .await
+            .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")).with_path(path))?;
+        let want = len.min(u32::MAX as u64) as usize;
+        let mut buf = vec![0u8; want];
+        let mut filled = 0;
+        while filled < want {
+            match file.read(&mut buf[filled..]).await {
+                Ok(0) => break,
+                Ok(n) => filled += n,
+                Err(e) => {
+                    return Err(VfsError::new(VfsErrorKind::Io, format!("{e}")).with_path(path))
+                }
+            }
+        }
+        buf.truncate(filled);
+        Ok(buf)
     }
 
     async fn open_read(&self, path: &str) -> Result<Box<dyn ReadStream>, VfsError> {
@@ -378,6 +396,13 @@ impl ReadStream for SftpReader {
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, VfsError> {
         self.file
             .read(buf)
+            .await
+            .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")))
+    }
+
+    async fn seek(&mut self, pos: u64) -> Result<u64, VfsError> {
+        self.file
+            .seek(SeekFrom::Start(pos))
             .await
             .map_err(|e| VfsError::new(VfsErrorKind::Io, format!("{e}")))
     }

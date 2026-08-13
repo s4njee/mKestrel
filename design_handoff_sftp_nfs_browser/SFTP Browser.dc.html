@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"><style>body{margin:0;background:#e8e4dc;font-family:'Source Sans 3',system-ui,sans-serif}a{color:#2a58c0;text-decoration:none}a:hover{color:#1c3f92}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px 'IBM Plex Mono',monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 'Source Sans 3',sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px}.dv-oid{font:600 10.5px 'IBM Plex Mono',monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11.5px/1.3 'Source Sans 3',sans-serif;color:rgba(0,0,0,.55)}.dv-card{max-width:100%;display:flex;flex-direction:column;gap:14px}.dv-scr{font:500 10.5px 'IBM Plex Mono',monospace;color:rgba(0,0,0,.42);letter-spacing:.08em;text-transform:uppercase;margin:10px 0 0}.dv-opt:target .dv-oid{background:#3B6FE0;color:#fff}.dv-next{margin:24px 0 0;font:12px/1.6 'Source Sans 3',sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Two visual treatments — same layout, tablet landscape 1194×834, touch-only</span></div>
+<div class="dv-opts">
+
+<sc-if value="{{ showSlate }}" hint-placeholder-val="{{ true }}"><div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Warm Slate — layered panels, soft radii, tinted protocol badges</div>
+<div class="dv-card">
+
+<p class="dv-scr">01 · Connections</p>
+<div style="width:1194px;height:834px;background:#171512;color:#EDE8E0;border-radius:14px;border:1px solid #353028;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font:500 12px 'IBM Plex Mono',monospace;color:#756C60;flex:none"><span>9:41</span><span style="display:flex;gap:14px"><span>wifi</span><span>100%</span></span></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 40px 26px;flex:none">
+    <div><div style="font-size:32px;font-weight:600;letter-spacing:-.01em">Connections</div><div style="font-size:15px;color:#A69D90;margin-top:4px">6 saved · 2 mounted</div></div>
+    <div style="display:flex;gap:12px">
+      <div style="height:56px;padding:0 24px;display:flex;align-items:center;border-radius:12px;border:1px solid #353028;background:#1F1C18;font-size:16px;font-weight:500;color:#EDE8E0">Import from .ssh/config</div>
+      <div style="height:56px;padding:0 26px;display:flex;align-items:center;border-radius:12px;background:#3B6FE0;font-size:16px;font-weight:600;color:#fff">New connection</div>
+    </div>
+  </div>
+  <div style="padding:0 40px;display:grid;grid-template-columns:1fr 1fr;gap:18px">
+    <div style="background:#1F1C18;border:1px solid #353028;border-radius:14px;padding:22px;box-shadow:0 1px 2px rgba(0,0,0,.35)">
+      <div style="display:flex;align-items:center;justify-content:space-between"><div style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#3B6FE0;background:rgba(59,111,224,.14);padding:5px 9px;border-radius:6px">SFTP</div><div style="display:flex;align-items:center;gap:8px;font-size:14px;color:#8FBF9A"><span style="width:8px;height:8px;border-radius:50%;background:#6FAE7C"></span>Mounted</div></div>
+      <div style="font-size:22px;font-weight:600;margin-top:16px">Studio NAS</div>
+      <div style="font:400 14px 'IBM Plex Mono',monospace;color:#A69D90;margin-top:6px">editor@10.0.4.12:22 · /volume1/media</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid #2A251F;font-size:14px;color:#756C60"><span>Opened 12 min ago</span><span style="color:#3B6FE0;font-weight:600">Open</span></div>
+    </div>
+    <div style="background:#1F1C18;border:1px solid #353028;border-radius:14px;padding:22px;box-shadow:0 1px 2px rgba(0,0,0,.35)">
+      <div style="display:flex;align-items:center;justify-content:space-between"><div style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#C9803A;background:rgba(201,128,58,.14);padding:5px 9px;border-radius:6px">NFS</div><div style="display:flex;align-items:center;gap:8px;font-size:14px;color:#8FBF9A"><span style="width:8px;height:8px;border-radius:50%;background:#6FAE7C"></span>Mounted</div></div>
+      <div style="font-size:22px;font-weight:600;margin-top:16px">Archive v4</div>
+      <div style="font:400 14px 'IBM Plex Mono',monospace;color:#A69D90;margin-top:6px">nfs://archive.local:/export/cold</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid #2A251F;font-size:14px;color:#756C60"><span>Opened yesterday</span><span style="color:#3B6FE0;font-weight:600">Open</span></div>
+    </div>
+    <div style="background:#1F1C18;border:1px solid #353028;border-radius:14px;padding:22px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><div style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#3B6FE0;background:rgba(59,111,224,.14);padding:5px 9px;border-radius:6px">SFTP</div><div style="display:flex;align-items:center;gap:8px;font-size:14px;color:#756C60"><span style="width:8px;height:8px;border-radius:50%;background:#4F4840"></span>Idle</div></div>
+      <div style="font-size:22px;font-weight:600;margin-top:16px">homelab-01</div>
+      <div style="font:400 14px 'IBM Plex Mono',monospace;color:#A69D90;margin-top:6px">root@192.168.1.20:2222 · /etc</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid #2A251F;font-size:14px;color:#756C60"><span>Key: id_ed25519</span><span style="color:#3B6FE0;font-weight:600">Open</span></div>
+    </div>
+    <div style="background:#1F1C18;border:1px solid #353028;border-radius:14px;padding:22px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><div style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#C9803A;background:rgba(201,128,58,.14);padding:5px 9px;border-radius:6px">NFS</div><div style="display:flex;align-items:center;gap:8px;font-size:14px;color:#D08A6A"><span style="width:8px;height:8px;border-radius:50%;background:#C9603A"></span>Unreachable</div></div>
+      <div style="font-size:22px;font-weight:600;margin-top:16px">Render farm scratch</div>
+      <div style="font:400 14px 'IBM Plex Mono',monospace;color:#A69D90;margin-top:6px">nfs://10.0.9.3:/scratch</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid #2A251F;font-size:14px;color:#756C60"><span>Timed out after 8s</span><span style="color:#3B6FE0;font-weight:600">Retry</span></div>
+    </div>
+  </div>
+</div>
+
+<p class="dv-scr">02 · Add connection</p>
+<div style="width:1194px;height:834px;background:#171512;color:#EDE8E0;border-radius:14px;border:1px solid #353028;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font:500 12px 'IBM Plex Mono',monospace;color:#756C60;flex:none"><span>9:41</span><span style="display:flex;gap:14px"><span>wifi</span><span>100%</span></span></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 40px 22px;flex:none"><div style="font-size:17px;color:#A69D90">Cancel</div><div style="font-size:20px;font-weight:600">New connection</div><div style="height:52px;padding:0 24px;display:flex;align-items:center;border-radius:12px;background:#3B6FE0;font-size:16px;font-weight:600;color:#fff">Save</div></div>
+  <div style="flex:1;display:flex;justify-content:center;padding:0 40px">
+    <div style="width:760px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;background:#1F1C18;border:1px solid #353028;border-radius:14px;padding:6px;gap:6px">
+        <div style="flex:1;height:56px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:10px;background:#3B6FE0;color:#fff;font-size:17px;font-weight:600">SFTP <span style="font:500 12px 'IBM Plex Mono',monospace;opacity:.75">ssh</span></div>
+        <div style="flex:1;height:56px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:10px;color:#A69D90;font-size:17px;font-weight:500">NFS <span style="font:500 12px 'IBM Plex Mono',monospace;opacity:.7">v3 / v4</span></div>
+      </div>
+      <div style="background:#1F1C18;border:1px solid #353028;border-radius:14px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:200px 1fr;align-items:center;gap:20px;padding:0 22px;height:72px;border-bottom:1px solid #2A251F"><div style="font-size:16px;color:#A69D90">Name</div><div style="font-size:17px;font-weight:500">Studio NAS</div></div>
+        <div style="display:grid;grid-template-columns:200px 1fr 140px;align-items:center;gap:20px;padding:0 22px;height:72px;border-bottom:1px solid #2A251F"><div style="font-size:16px;color:#A69D90">Host</div><div style="font:400 17px 'IBM Plex Mono',monospace">10.0.4.12</div><div style="font:400 17px 'IBM Plex Mono',monospace;color:#A69D90;text-align:right">port 22</div></div>
+        <div style="display:grid;grid-template-columns:200px 1fr;align-items:center;gap:20px;padding:0 22px;height:72px;border-bottom:1px solid #2A251F"><div style="font-size:16px;color:#A69D90">Username</div><div style="font:400 17px 'IBM Plex Mono',monospace">editor</div></div>
+        <div style="display:grid;grid-template-columns:200px 1fr;align-items:center;gap:20px;padding:0 22px;height:88px"><div style="font-size:16px;color:#A69D90">Authentication</div><div style="display:flex;gap:10px"><div style="height:52px;padding:0 22px;display:flex;align-items:center;border-radius:10px;background:rgba(59,111,224,.14);border:1px solid #3B6FE0;color:#EDE8E0;font-size:16px;font-weight:600">SSH key</div><div style="height:52px;padding:0 22px;display:flex;align-items:center;border-radius:10px;border:1px solid #353028;color:#A69D90;font-size:16px">Password</div><div style="height:52px;padding:0 22px;display:flex;align-items:center;border-radius:10px;border:1px solid #353028;color:#A69D90;font-size:16px">Agent</div></div></div>
+      </div>
+      <div style="background:#1F1C18;border:1px solid #353028;border-radius:14px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:200px 1fr auto;align-items:center;gap:20px;padding:0 22px;height:80px;border-bottom:1px solid #2A251F"><div style="font-size:16px;color:#A69D90">Private key</div><div style="font:400 16px 'IBM Plex Mono',monospace;color:#EDE8E0">id_ed25519 <span style="color:#756C60">· imported</span></div><div style="height:48px;padding:0 20px;display:flex;align-items:center;border-radius:10px;border:1px solid #353028;font-size:15px;color:#EDE8E0">Replace</div></div>
+        <div style="display:grid;grid-template-columns:200px 1fr;align-items:center;gap:20px;padding:0 22px;height:72px;border-bottom:1px solid #2A251F"><div style="font-size:16px;color:#A69D90">Remote path</div><div style="font:400 17px 'IBM Plex Mono',monospace">/volume1/media</div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0 22px;height:80px"><div><div style="font-size:16px">Store credentials in keychain</div><div style="font-size:14px;color:#756C60;margin-top:3px">Face ID required to mount</div></div><div style="width:60px;height:34px;border-radius:17px;background:#3B6FE0;display:flex;align-items:center;justify-content:flex-end;padding:3px"><div style="width:28px;height:28px;border-radius:50%;background:#fff"></div></div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="height:56px;padding:0 26px;display:flex;align-items:center;border-radius:12px;border:1px solid #353028;background:#1F1C18;font-size:16px;font-weight:500">Test connection</div>
+        <div style="font:400 15px 'IBM Plex Mono',monospace;color:#8FBF9A">ok · handshake 240 ms · sftp v3</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="dv-scr">03 · File browser (2 selected)</p>
+<div style="width:1194px;height:834px;background:#171512;color:#EDE8E0;border-radius:14px;border:1px solid #353028;overflow:hidden;display:flex">
+  <div style="width:296px;flex:none;background:#1B1814;border-right:1px solid #353028;display:flex;flex-direction:column">
+    <div style="padding:22px 20px 16px;border-bottom:1px solid #2A251F">
+      <div style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#756C60">MOUNTS</div>
+    </div>
+    <div style="padding:10px">
+      <div style="display:flex;align-items:center;gap:12px;height:60px;padding:0 14px;border-radius:11px;background:rgba(59,111,224,.13);border:1px solid rgba(59,111,224,.35)"><span style="width:8px;height:8px;border-radius:50%;background:#6FAE7C"></span><div style="flex:1"><div style="font-size:16px;font-weight:600">Studio NAS</div><div style="font:400 12px 'IBM Plex Mono',monospace;color:#A69D90">sftp · 10.0.4.12</div></div></div>
+      <div style="display:flex;align-items:center;gap:12px;height:60px;padding:0 14px;border-radius:11px"><span style="width:8px;height:8px;border-radius:50%;background:#6FAE7C"></span><div style="flex:1"><div style="font-size:16px;font-weight:500">Archive v4</div><div style="font:400 12px 'IBM Plex Mono',monospace;color:#756C60">nfs · archive.local</div></div></div>
+      <div style="display:flex;align-items:center;gap:12px;height:60px;padding:0 14px;border-radius:11px"><span style="width:8px;height:8px;border-radius:50%;background:#4F4840"></span><div style="flex:1"><div style="font-size:16px;font-weight:500;color:#A69D90">homelab-01</div><div style="font:400 12px 'IBM Plex Mono',monospace;color:#756C60">sftp · 192.168.1.20</div></div></div>
+    </div>
+    <div style="padding:18px 20px 10px"><div style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#756C60">PLACES</div></div>
+    <div style="padding:0 10px;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 14px;border-radius:11px;font-size:16px">Recent</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 14px;border-radius:11px;font-size:16px">Bookmarks<span style="font:500 13px 'IBM Plex Mono',monospace;color:#756C60">7</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 14px;border-radius:11px;font-size:16px">Transfers<span style="font:600 12px 'IBM Plex Mono',monospace;color:#fff;background:#3B6FE0;padding:4px 9px;border-radius:9px">3</span></div>
+    </div>
+    <div style="margin-top:auto;padding:16px;border-top:1px solid #2A251F">
+      <div style="font:400 13px 'IBM Plex Mono',monospace;color:#756C60;line-height:1.6">1.8 TB free of 12 TB<div style="height:6px;border-radius:3px;background:#2A251F;margin-top:10px;overflow:hidden"><div style="width:85%;height:100%;background:#4F4840"></div></div></div>
+    </div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div style="height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font:500 12px 'IBM Plex Mono',monospace;color:#756C60;flex:none"><span>9:41</span><span style="display:flex;gap:14px"><span>wifi</span><span>100%</span></span></div>
+    <div style="display:flex;align-items:center;gap:14px;padding:8px 24px 18px;flex:none">
+      <div style="width:52px;height:52px;border-radius:11px;border:1px solid #353028;background:#1F1C18;display:flex;align-items:center;justify-content:center;font:500 18px 'IBM Plex Mono',monospace;color:#A69D90">‹</div>
+      <div style="flex:1;height:52px;display:flex;align-items:center;gap:8px;padding:0 16px;border-radius:11px;background:#1F1C18;border:1px solid #353028;font:400 15px 'IBM Plex Mono',monospace;color:#A69D90;min-width:0"><span>/volume1</span><span style="color:#4F4840">/</span><span>media</span><span style="color:#4F4840">/</span><span style="color:#EDE8E0;font-weight:500">2026_shoots</span></div>
+      <div style="width:52px;height:52px;border-radius:11px;border:1px solid #353028;background:#1F1C18;display:flex;align-items:center;justify-content:center;font:500 13px 'IBM Plex Mono',monospace;color:#A69D90">Q</div>
+      <div style="height:52px;padding:0 18px;border-radius:11px;border:1px solid #353028;background:#1F1C18;display:flex;align-items:center;font-size:15px;color:#EDE8E0">Sort: Modified</div>
+    </div>
+    <div style="display:grid;grid-template-columns:28px 44px 1fr 110px 170px 120px;align-items:center;gap:16px;padding:0 24px;height:40px;font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.08em;color:#756C60;border-bottom:1px solid #2A251F;flex:none"><span></span><span></span><span>NAME</span><span>SIZE</span><span>MODIFIED</span><span>MODE</span></div>
+    <div style="flex:1;overflow:hidden">
+      <div style="display:grid;grid-template-columns:28px 44px 1fr 110px 170px 120px;align-items:center;gap:16px;padding:0 24px;height:70px;border-bottom:1px solid #221E19"><div style="width:26px;height:26px;border-radius:7px;border:1.5px solid #4F4840"></div><div style="width:44px;height:44px;border-radius:10px;background:#262119;border:1px solid #353028;display:flex;align-items:center;justify-content:center;font:600 10px 'IBM Plex Mono',monospace;color:#3B6FE0;letter-spacing:.06em">DIR</div><div style="font-size:17px;font-weight:600">a_roll</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#756C60">—</div><div style="font-size:15px;color:#A69D90">Aug 11, 09:04</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#756C60">drwxr-xr-x</div></div>
+      <div style="display:grid;grid-template-columns:28px 44px 1fr 110px 170px 120px;align-items:center;gap:16px;padding:0 24px;height:70px;border-bottom:1px solid #221E19"><div style="width:26px;height:26px;border-radius:7px;border:1.5px solid #4F4840"></div><div style="width:44px;height:44px;border-radius:10px;background:#262119;border:1px solid #353028;display:flex;align-items:center;justify-content:center;font:600 10px 'IBM Plex Mono',monospace;color:#3B6FE0;letter-spacing:.06em">DIR</div><div style="font-size:17px;font-weight:600">b_roll</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#756C60">—</div><div style="font-size:15px;color:#A69D90">Aug 10, 18:41</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#756C60">drwxr-xr-x</div></div>
+      <div style="display:grid;grid-template-columns:28px 44px 1fr 110px 170px 120px;align-items:center;gap:16px;padding:0 24px;height:70px;border-bottom:1px solid #221E19;background:rgba(59,111,224,.10);box-shadow:inset 3px 0 0 #3B6FE0"><div style="width:26px;height:26px;border-radius:7px;background:#3B6FE0;display:flex;align-items:center;justify-content:center;font:700 14px 'Source Sans 3';color:#fff">✓</div><div style="width:44px;height:44px;border-radius:10px;background:#262119;border:1px solid #353028;display:flex;align-items:center;justify-content:center;font:600 10px 'IBM Plex Mono',monospace;color:#A69D90;letter-spacing:.06em">MOV</div><div style="font-size:17px;font-weight:600">A001_C012_0811KJ.mov</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#A69D90">14.2 GB</div><div style="font-size:15px;color:#A69D90">Aug 11, 08:52</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#756C60">-rw-r--r--</div></div>
+      <div style="display:grid;grid-template-columns:28px 44px 1fr 110px 170px 120px;align-items:center;gap:16px;padding:0 24px;height:70px;border-bottom:1px solid #221E19;background:rgba(59,111,224,.10);box-shadow:inset 3px 0 0 #3B6FE0"><div style="width:26px;height:26px;border-radius:7px;background:#3B6FE0;display:flex;align-items:center;justify-content:center;font:700 14px 'Source Sans 3';color:#fff">✓</div><div style="width:44px;height:44px;border-radius:10px;background:#262119;border:1px solid #353028;display:flex;align-items:center;justify-content:center;font:600 10px 'IBM Plex Mono',monospace;color:#A69D90;letter-spacing:.06em">MOV</div><div style="font-size:17px;font-weight:600">A001_C013_0811KJ.mov</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#A69D90">9.7 GB</div><div style="font-size:15px;color:#A69D90">Aug 11, 08:58</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#756C60">-rw-r--r--</div></div>
+      <div style="display:grid;grid-template-columns:28px 44px 1fr 110px 170px 120px;align-items:center;gap:16px;padding:0 24px;height:70px;border-bottom:1px solid #221E19"><div style="width:26px;height:26px;border-radius:7px;border:1.5px solid #4F4840"></div><div style="width:44px;height:44px;border-radius:10px;background:#262119;border:1px solid #353028;display:flex;align-items:center;justify-content:center;font:600 10px 'IBM Plex Mono',monospace;color:#A69D90;letter-spacing:.06em">WAV</div><div style="font-size:17px;font-weight:600">scratch_audio_take4.wav</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#A69D90">412 MB</div><div style="font-size:15px;color:#A69D90">Aug 11, 08:20</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#756C60">-rw-r--r--</div></div>
+      <div style="display:grid;grid-template-columns:28px 44px 1fr 110px 170px 120px;align-items:center;gap:16px;padding:0 24px;height:70px;border-bottom:1px solid #221E19"><div style="width:26px;height:26px;border-radius:7px;border:1.5px solid #4F4840"></div><div style="width:44px;height:44px;border-radius:10px;background:#262119;border:1px solid #353028;display:flex;align-items:center;justify-content:center;font:600 10px 'IBM Plex Mono',monospace;color:#C9803A;letter-spacing:.06em">CFG</div><div style="font-size:17px;font-weight:600">transcode.yml</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#A69D90">3.1 KB</div><div style="font-size:15px;color:#A69D90">Aug 9, 14:22</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#756C60">-rw-rw-r--</div></div>
+      <div style="display:grid;grid-template-columns:28px 44px 1fr 110px 170px 120px;align-items:center;gap:16px;padding:0 24px;height:70px;border-bottom:1px solid #221E19"><div style="width:26px;height:26px;border-radius:7px;border:1.5px solid #4F4840"></div><div style="width:44px;height:44px;border-radius:10px;background:#262119;border:1px solid #353028;display:flex;align-items:center;justify-content:center;font:600 10px 'IBM Plex Mono',monospace;color:#A69D90;letter-spacing:.06em">JPG</div><div style="font-size:17px;font-weight:600">slate_ref.jpg</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#A69D90">2.4 MB</div><div style="font-size:15px;color:#A69D90">Aug 9, 11:07</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#756C60">-rw-r--r--</div></div>
+      <div style="display:grid;grid-template-columns:28px 44px 1fr 110px 170px 120px;align-items:center;gap:16px;padding:0 24px;height:70px;border-bottom:1px solid #221E19"><div style="width:26px;height:26px;border-radius:7px;border:1.5px solid #4F4840"></div><div style="width:44px;height:44px;border-radius:10px;background:#262119;border:1px solid #353028;display:flex;align-items:center;justify-content:center;font:600 10px 'IBM Plex Mono',monospace;color:#A69D90;letter-spacing:.06em">LOG</div><div style="font-size:17px;font-weight:600">ingest.log</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#A69D90">88 KB</div><div style="font-size:15px;color:#A69D90">Aug 8, 22:15</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#756C60">-rw-r--r--</div></div>
+      <div style="display:grid;grid-template-columns:28px 44px 1fr 110px 170px 120px;align-items:center;gap:16px;padding:0 24px;height:70px;border-bottom:1px solid #221E19"><div style="width:26px;height:26px;border-radius:7px;border:1.5px solid #4F4840"></div><div style="width:44px;height:44px;border-radius:10px;background:#262119;border:1px solid #353028;display:flex;align-items:center;justify-content:center;font:600 10px 'IBM Plex Mono',monospace;color:#756C60;letter-spacing:.06em">LNK</div><div style="font-size:17px;font-weight:600;color:#A69D90">latest → 2026_shoots</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#756C60">—</div><div style="font-size:15px;color:#A69D90">Jul 30, 10:00</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#756C60">lrwxrwxrwx</div></div>
+    </div>
+    <div style="flex:none;padding:14px 24px;border-top:1px solid #353028;background:#1B1814;display:flex;align-items:center;gap:12px">
+      <div style="font-size:16px;font-weight:600;margin-right:6px">2 selected<span style="font:400 14px 'IBM Plex Mono',monospace;color:#A69D90;margin-left:10px">23.9 GB</span></div>
+      <div style="height:56px;padding:0 24px;display:flex;align-items:center;border-radius:12px;background:#3B6FE0;color:#fff;font-size:16px;font-weight:600;margin-left:auto">Download</div>
+      <div style="height:56px;padding:0 22px;display:flex;align-items:center;border-radius:12px;border:1px solid #353028;background:#1F1C18;font-size:16px">Copy to…</div>
+      <div style="height:56px;padding:0 22px;display:flex;align-items:center;border-radius:12px;border:1px solid #353028;background:#1F1C18;font-size:16px">Rename</div>
+      <div style="height:56px;padding:0 22px;display:flex;align-items:center;border-radius:12px;border:1px solid #353028;background:#1F1C18;font-size:16px;color:#D08A6A">Delete</div>
+    </div>
+  </div>
+</div>
+
+<p class="dv-scr">04 · Transfers</p>
+<div style="width:1194px;height:834px;background:#171512;color:#EDE8E0;border-radius:14px;border:1px solid #353028;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font:500 12px 'IBM Plex Mono',monospace;color:#756C60;flex:none"><span>9:41</span><span style="display:flex;gap:14px"><span>wifi</span><span>100%</span></span></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 40px 18px;flex:none">
+    <div style="display:flex;align-items:baseline;gap:16px"><div style="font-size:30px;font-weight:600">Transfers</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#A69D90">2 active · 118 MB/s · 6 min left</div></div>
+    <div style="display:flex;gap:10px"><div style="height:48px;padding:0 20px;display:flex;align-items:center;border-radius:11px;border:1px solid #353028;background:#1F1C18;font-size:15px;font-weight:500">Pause all</div><div style="height:48px;padding:0 20px;display:flex;align-items:center;border-radius:11px;border:1px solid #353028;background:#1F1C18;font-size:15px;color:#A69D90">Clear finished</div></div>
+  </div>
+  <div style="padding:0 40px;display:flex;flex-direction:column;gap:8px">
+    <div style="background:#1F1C18;border:1px solid #353028;border-radius:12px;padding:14px 18px">
+      <div style="display:flex;align-items:center;gap:12px"><div style="font:600 11px 'IBM Plex Mono',monospace;color:#3B6FE0;background:rgba(59,111,224,.14);padding:4px 8px;border-radius:5px">↓ SFTP</div><div style="font-size:17px;font-weight:600;flex:1">A001_C012_0811KJ.mov</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#A69D90">8.9 / 14.2 GB · 118 MB/s</div><div style="width:44px;height:44px;border-radius:10px;border:1px solid #353028;display:flex;align-items:center;justify-content:center;font-size:14px;color:#A69D90;margin-left:10px">‖</div></div>
+      <div style="height:6px;border-radius:3px;background:#2A251F;margin-top:10px;overflow:hidden"><div style="width:63%;height:100%;background:#3B6FE0"></div></div>
+      <div style="display:flex;justify-content:space-between;font:400 12.5px 'IBM Plex Mono',monospace;color:#756C60;margin-top:7px"><span>Studio NAS → On device / Ingest</span><span>63% · 46s left</span></div>
+    </div>
+    <div style="background:#1F1C18;border:1px solid #353028;border-radius:12px;padding:14px 18px">
+      <div style="display:flex;align-items:center;gap:12px"><div style="font:600 11px 'IBM Plex Mono',monospace;color:#C9803A;background:rgba(201,128,58,.14);padding:4px 8px;border-radius:5px">↑ NFS</div><div style="font-size:17px;font-weight:600;flex:1">deliverables_v3.zip</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#A69D90">1.1 / 4.8 GB · 42 MB/s</div><div style="width:44px;height:44px;border-radius:10px;border:1px solid #353028;display:flex;align-items:center;justify-content:center;font-size:14px;color:#A69D90;margin-left:10px">‖</div></div>
+      <div style="height:6px;border-radius:3px;background:#2A251F;margin-top:10px;overflow:hidden"><div style="width:23%;height:100%;background:#C9803A"></div></div>
+      <div style="display:flex;justify-content:space-between;font:400 12.5px 'IBM Plex Mono',monospace;color:#756C60;margin-top:7px"><span>On device → Archive v4 / cold/2026</span><span>23% · 1m 28s left</span></div>
+    </div>
+    <div style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#756C60;margin:10px 0 0">QUEUED · 1</div>
+    <div style="background:#1F1C18;border:1px solid #353028;border-radius:12px;padding:0 18px;height:60px;display:flex;align-items:center;gap:12px"><div style="font:600 11px 'IBM Plex Mono',monospace;color:#756C60;background:#262119;padding:4px 8px;border-radius:5px">↓ SFTP</div><div style="font-size:16px;font-weight:500;flex:1">A001_C013_0811KJ.mov</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#756C60">9.7 GB · waiting</div></div>
+    <div style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#756C60;margin:10px 0 0">FINISHED · TODAY</div>
+    <div style="background:#1B1814;border:1px solid #2A251F;border-radius:12px;padding:0 18px;height:56px;display:flex;align-items:center;gap:12px"><div style="font:600 12px 'IBM Plex Mono',monospace;color:#6FAE7C">✓</div><div style="font-size:16px;font-weight:500;flex:1;color:#A69D90">transcode.yml</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#756C60">3.1 KB · 09:12</div></div>
+    <div style="background:#1B1814;border:1px solid #2A251F;border-radius:12px;padding:0 18px;height:56px;display:flex;align-items:center;gap:12px"><div style="font:600 12px 'IBM Plex Mono',monospace;color:#C9603A">!</div><div style="font-size:16px;font-weight:500;flex:1;color:#A69D90">slate_ref.jpg <span style="font:400 14px 'IBM Plex Mono',monospace;color:#D08A6A">permission denied</span></div><div style="font-size:15px;color:#3B6FE0;font-weight:600">Retry</div></div>
+  </div>
+</div>
+
+<p class="dv-scr">05 · Settings</p>
+<div style="width:1194px;height:834px;background:#171512;color:#EDE8E0;border-radius:14px;border:1px solid #353028;overflow:hidden;display:flex">
+  <div style="width:296px;flex:none;background:#1B1814;border-right:1px solid #353028;padding:34px 12px">
+    <div style="font-size:24px;font-weight:600;padding:0 14px 20px">Settings</div>
+    <div style="display:flex;flex-direction:column">
+      <div style="height:58px;display:flex;align-items:center;padding:0 14px;border-radius:11px;background:rgba(59,111,224,.13);border:1px solid rgba(59,111,224,.35);font-size:16px;font-weight:600">Transfers</div>
+      <div style="height:58px;display:flex;align-items:center;padding:0 14px;border-radius:11px;font-size:16px;color:#A69D90">General</div>
+      <div style="height:58px;display:flex;align-items:center;padding:0 14px;border-radius:11px;font-size:16px;color:#A69D90">Text editor</div>
+      <div style="height:58px;display:flex;align-items:center;padding:0 14px;border-radius:11px;font-size:16px;color:#A69D90">Security &amp; keys</div>
+      <div style="height:58px;display:flex;align-items:center;padding:0 14px;border-radius:11px;font-size:16px;color:#A69D90">Storage</div>
+      <div style="height:58px;display:flex;align-items:center;padding:0 14px;border-radius:11px;font-size:16px;color:#A69D90">About</div>
+    </div>
+  </div>
+  <div style="flex:1;padding:44px 40px;display:flex;flex-direction:column;gap:22px;min-width:0">
+    <div style="font-size:28px;font-weight:600">Transfers</div>
+    <div style="background:#1F1C18;border:1px solid #353028;border-radius:14px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 22px;height:84px;border-bottom:1px solid #2A251F"><div><div style="font-size:17px">Parallel transfers</div><div style="font-size:14px;color:#756C60;margin-top:3px">Higher values saturate slow links</div></div><div style="display:flex;gap:8px"><div style="width:52px;height:52px;border-radius:10px;border:1px solid #353028;display:flex;align-items:center;justify-content:center;font:500 17px 'IBM Plex Mono',monospace;color:#A69D90">1</div><div style="width:52px;height:52px;border-radius:10px;background:rgba(59,111,224,.14);border:1px solid #3B6FE0;display:flex;align-items:center;justify-content:center;font:600 17px 'IBM Plex Mono',monospace">4</div><div style="width:52px;height:52px;border-radius:10px;border:1px solid #353028;display:flex;align-items:center;justify-content:center;font:500 17px 'IBM Plex Mono',monospace;color:#A69D90">8</div></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 22px;height:84px;border-bottom:1px solid #2A251F"><div><div style="font-size:17px">Resume interrupted transfers</div><div style="font-size:14px;color:#756C60;margin-top:3px">Uses partial-file offsets where the server allows it</div></div><div style="width:60px;height:34px;border-radius:17px;background:#3B6FE0;display:flex;align-items:center;justify-content:flex-end;padding:3px"><div style="width:28px;height:28px;border-radius:50%;background:#fff"></div></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 22px;height:84px"><div><div style="font-size:17px">Only transfer on Wi-Fi</div><div style="font-size:14px;color:#756C60;margin-top:3px">Queue holds until Wi-Fi returns</div></div><div style="width:60px;height:34px;border-radius:17px;background:#332E27;display:flex;align-items:center;padding:3px"><div style="width:28px;height:28px;border-radius:50%;background:#8A8175"></div></div></div>
+    </div>
+    <div style="font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#756C60;margin-top:6px">CONFLICTS</div>
+    <div style="background:#1F1C18;border:1px solid #353028;border-radius:14px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 22px;height:84px;border-bottom:1px solid #2A251F"><div style="font-size:17px">When a file already exists</div><div style="font-size:17px;color:#A69D90">Ask every time</div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 22px;height:84px"><div><div style="font-size:17px">Preserve modification times</div><div style="font-size:14px;color:#756C60;margin-top:3px">NFS mounts only</div></div><div style="width:60px;height:34px;border-radius:17px;background:#3B6FE0;display:flex;align-items:center;justify-content:flex-end;padding:3px"><div style="width:28px;height:28px;border-radius:50%;background:#fff"></div></div></div>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+
+</sc-if><sc-if value="{{ showLedger }}" hint-placeholder-val="{{ true }}"><div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Ledger — no cards, hairline rules, mono-forward, accent used only as a marker</div>
+<div class="dv-card">
+
+<p class="dv-scr">01 · Connections</p>
+<div style="width:1194px;height:834px;background:#14120F;color:#F0EBE3;border-radius:14px;border:1px solid #2C2822;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:500 12px 'IBM Plex Mono',monospace;color:#6E665B;flex:none"><span>9:41</span><span style="display:flex;gap:14px"><span>wifi</span><span>100%</span></span></div>
+  <div style="padding:18px 48px 0;display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1px solid #2C2822;padding-bottom:22px">
+    <div style="font-size:40px;font-weight:600;letter-spacing:-.02em">Connections</div>
+    <div style="display:flex;align-items:center;gap:28px;padding-bottom:6px"><div style="font:500 12px 'IBM Plex Mono',monospace;color:#6E665B;letter-spacing:.08em">6 SAVED / 2 MOUNTED</div><div style="height:56px;padding:0 26px;display:flex;align-items:center;border:1px solid #3B6FE0;color:#F0EBE3;font-size:16px;font-weight:600">New connection</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:120px 1fr 300px 200px 120px;align-items:center;gap:20px;padding:0 48px;height:44px;font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6E665B;border-bottom:1px solid #2C2822"><span>PROTO</span><span>NAME</span><span>ENDPOINT</span><span>STATE</span><span></span></div>
+  <div style="display:flex;flex-direction:column">
+    <div style="display:grid;grid-template-columns:120px 1fr 300px 200px 120px;align-items:center;gap:20px;padding:0 48px;height:92px;border-bottom:1px solid #211D18;box-shadow:inset 3px 0 0 #3B6FE0"><div style="font:600 13px 'IBM Plex Mono',monospace;color:#3B6FE0;letter-spacing:.08em">sftp</div><div style="font-size:21px;font-weight:600">Studio NAS</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#9C9488">editor@10.0.4.12:22</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#8FBF9A">mounted · 12 min</div><div style="font-size:16px;font-weight:600;color:#3B6FE0;text-align:right">Open</div></div>
+    <div style="display:grid;grid-template-columns:120px 1fr 300px 200px 120px;align-items:center;gap:20px;padding:0 48px;height:92px;border-bottom:1px solid #211D18"><div style="font:600 13px 'IBM Plex Mono',monospace;color:#C9803A;letter-spacing:.08em">nfs</div><div style="font-size:21px;font-weight:600">Archive v4</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#9C9488">archive.local:/export/cold</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#8FBF9A">mounted · yesterday</div><div style="font-size:16px;font-weight:600;color:#3B6FE0;text-align:right">Open</div></div>
+    <div style="display:grid;grid-template-columns:120px 1fr 300px 200px 120px;align-items:center;gap:20px;padding:0 48px;height:92px;border-bottom:1px solid #211D18"><div style="font:600 13px 'IBM Plex Mono',monospace;color:#3B6FE0;letter-spacing:.08em">sftp</div><div style="font-size:21px;font-weight:600">homelab-01</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#9C9488">root@192.168.1.20:2222</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#6E665B">idle · key id_ed25519</div><div style="font-size:16px;font-weight:600;color:#3B6FE0;text-align:right">Open</div></div>
+    <div style="display:grid;grid-template-columns:120px 1fr 300px 200px 120px;align-items:center;gap:20px;padding:0 48px;height:92px;border-bottom:1px solid #211D18"><div style="font:600 13px 'IBM Plex Mono',monospace;color:#C9803A;letter-spacing:.08em">nfs</div><div style="font-size:21px;font-weight:600">Render farm scratch</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#9C9488">10.0.9.3:/scratch</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#D08A6A">unreachable · timeout 8s</div><div style="font-size:16px;font-weight:600;color:#3B6FE0;text-align:right">Retry</div></div>
+    <div style="display:grid;grid-template-columns:120px 1fr 300px 200px 120px;align-items:center;gap:20px;padding:0 48px;height:92px;border-bottom:1px solid #211D18"><div style="font:600 13px 'IBM Plex Mono',monospace;color:#3B6FE0;letter-spacing:.08em">sftp</div><div style="font-size:21px;font-weight:600">Client dropbox</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#9C9488">upload@sftp.hakan.co:22</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#6E665B">idle · password</div><div style="font-size:16px;font-weight:600;color:#3B6FE0;text-align:right">Open</div></div>
+    <div style="display:grid;grid-template-columns:120px 1fr 300px 200px 120px;align-items:center;gap:20px;padding:0 48px;height:92px;border-bottom:1px solid #211D18"><div style="font:600 13px 'IBM Plex Mono',monospace;color:#C9803A;letter-spacing:.08em">nfs</div><div style="font-size:21px;font-weight:600">Home media</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#9C9488">192.168.1.9:/tank/media</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#6E665B">idle · v4.1</div><div style="font-size:16px;font-weight:600;color:#3B6FE0;text-align:right">Open</div></div>
+  </div>
+  <div style="margin-top:auto;padding:22px 48px;border-top:1px solid #2C2822;font:400 13px 'IBM Plex Mono',monospace;color:#6E665B">Import hosts from ~/.ssh/config · 4 candidates found</div>
+</div>
+
+<p class="dv-scr">02 · Add connection</p>
+<div style="width:1194px;height:834px;background:#14120F;color:#F0EBE3;border-radius:14px;border:1px solid #2C2822;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:500 12px 'IBM Plex Mono',monospace;color:#6E665B;flex:none"><span>9:41</span><span style="display:flex;gap:14px"><span>wifi</span><span>100%</span></span></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 48px 22px;border-bottom:1px solid #2C2822"><div style="font-size:17px;color:#9C9488">Cancel</div><div style="font-size:26px;font-weight:600">New connection</div><div style="height:52px;padding:0 26px;display:flex;align-items:center;border:1px solid #3B6FE0;font-size:16px;font-weight:600;color:#F0EBE3">Save</div></div>
+  <div style="display:flex;flex:1;min-height:0">
+    <div style="width:220px;flex:none;border-right:1px solid #2C2822;padding:26px 0">
+      <div style="height:64px;display:flex;align-items:center;padding:0 26px;font:600 15px 'IBM Plex Mono',monospace;color:#F0EBE3;box-shadow:inset 3px 0 0 #3B6FE0">sftp</div>
+      <div style="height:64px;display:flex;align-items:center;padding:0 26px;font:400 15px 'IBM Plex Mono',monospace;color:#6E665B">nfs</div>
+      <div style="padding:22px 26px;font:400 12px 'IBM Plex Mono',monospace;color:#6E665B;line-height:1.7">SFTP tunnels over SSH.<br>NFS needs a reachable<br>export and a mount path.</div>
+    </div>
+    <div style="flex:1;min-width:0">
+      <div style="display:grid;grid-template-columns:230px 1fr;align-items:center;gap:24px;padding:0 48px;height:88px;border-bottom:1px solid #211D18"><div style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6E665B">NAME</div><div style="font-size:20px;font-weight:500">Studio NAS</div></div>
+      <div style="display:grid;grid-template-columns:230px 1fr 120px;align-items:center;gap:24px;padding:0 48px;height:88px;border-bottom:1px solid #211D18"><div style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6E665B">HOST / PORT</div><div style="font:400 20px 'IBM Plex Mono',monospace">10.0.4.12</div><div style="font:400 20px 'IBM Plex Mono',monospace;color:#9C9488;text-align:right">22</div></div>
+      <div style="display:grid;grid-template-columns:230px 1fr;align-items:center;gap:24px;padding:0 48px;height:88px;border-bottom:1px solid #211D18"><div style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6E665B">USER</div><div style="font:400 20px 'IBM Plex Mono',monospace">editor</div></div>
+      <div style="display:grid;grid-template-columns:230px 1fr;align-items:center;gap:24px;padding:0 48px;height:104px;border-bottom:1px solid #211D18"><div style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6E665B">AUTH</div><div style="display:flex;gap:28px;align-items:center"><div style="height:56px;display:flex;align-items:center;font-size:17px;font-weight:600;border-bottom:2px solid #3B6FE0">SSH key</div><div style="height:56px;display:flex;align-items:center;font-size:17px;color:#6E665B">Password</div><div style="height:56px;display:flex;align-items:center;font-size:17px;color:#6E665B">Agent</div></div></div>
+      <div style="display:grid;grid-template-columns:230px 1fr auto;align-items:center;gap:24px;padding:0 48px;height:88px;border-bottom:1px solid #211D18"><div style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6E665B">KEY FILE</div><div style="font:400 17px 'IBM Plex Mono',monospace;color:#F0EBE3">id_ed25519 <span style="color:#6E665B">imported 3 Jul</span></div><div style="font-size:16px;color:#3B6FE0;font-weight:600">Replace</div></div>
+      <div style="display:grid;grid-template-columns:230px 1fr;align-items:center;gap:24px;padding:0 48px;height:88px;border-bottom:1px solid #211D18"><div style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6E665B">REMOTE PATH</div><div style="font:400 20px 'IBM Plex Mono',monospace">/volume1/media</div></div>
+      <div style="display:grid;grid-template-columns:230px 1fr auto;align-items:center;gap:24px;padding:0 48px;height:96px;border-bottom:1px solid #211D18"><div style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6E665B">KEYCHAIN</div><div><div style="font-size:17px">Store credentials on device</div><div style="font-size:14px;color:#6E665B;margin-top:3px">Face ID required to mount</div></div><div style="width:60px;height:34px;border-radius:17px;background:#3B6FE0;display:flex;align-items:center;justify-content:flex-end;padding:3px"><div style="width:28px;height:28px;border-radius:50%;background:#fff"></div></div></div>
+      <div style="display:flex;align-items:center;gap:24px;padding:28px 48px"><div style="height:56px;padding:0 26px;display:flex;align-items:center;border:1px solid #3C362E;font-size:16px;font-weight:500">Test connection</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#8FBF9A">ok · handshake 240 ms · sftp v3 · host key sha256:d2f…9ac</div></div>
+    </div>
+  </div>
+</div>
+
+<p class="dv-scr">03 · File browser (2 selected)</p>
+<div style="width:1194px;height:834px;background:#14120F;color:#F0EBE3;border-radius:14px;border:1px solid #2C2822;overflow:hidden;display:flex">
+  <div style="width:288px;flex:none;border-right:1px solid #2C2822;display:flex;flex-direction:column">
+    <div style="padding:26px 24px 12px;font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6E665B">MOUNTS</div>
+    <div>
+      <div style="height:68px;display:flex;flex-direction:column;justify-content:center;padding:0 24px;box-shadow:inset 3px 0 0 #3B6FE0"><div style="font-size:17px;font-weight:600">Studio NAS</div><div style="font:400 12px 'IBM Plex Mono',monospace;color:#9C9488;margin-top:2px">sftp · 10.0.4.12 · rw</div></div>
+      <div style="height:68px;display:flex;flex-direction:column;justify-content:center;padding:0 24px"><div style="font-size:17px;color:#C4BCB0">Archive v4</div><div style="font:400 12px 'IBM Plex Mono',monospace;color:#6E665B;margin-top:2px">nfs · archive.local · ro</div></div>
+      <div style="height:68px;display:flex;flex-direction:column;justify-content:center;padding:0 24px"><div style="font-size:17px;color:#C4BCB0">homelab-01</div><div style="font:400 12px 'IBM Plex Mono',monospace;color:#6E665B;margin-top:2px">sftp · not mounted</div></div>
+    </div>
+    <div style="padding:26px 24px 12px;font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6E665B;border-top:1px solid #211D18;margin-top:14px">PLACES</div>
+    <div>
+      <div style="height:60px;display:flex;align-items:center;padding:0 24px;font-size:17px;color:#C4BCB0">Recent</div>
+      <div style="height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:17px;color:#C4BCB0">Bookmarks<span style="font:400 14px 'IBM Plex Mono',monospace;color:#6E665B">7</span></div>
+      <div style="height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:17px;color:#C4BCB0">Transfers<span style="font:600 13px 'IBM Plex Mono',monospace;color:#3B6FE0">3</span></div>
+    </div>
+    <div style="margin-top:auto;padding:20px 24px;border-top:1px solid #2C2822;font:400 12px 'IBM Plex Mono',monospace;color:#6E665B">1.8 TB free / 12 TB</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div style="height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:500 12px 'IBM Plex Mono',monospace;color:#6E665B;flex:none"><span>9:41</span><span style="display:flex;gap:14px"><span>wifi</span><span>100%</span></span></div>
+    <div style="display:flex;align-items:center;gap:22px;padding:10px 32px 20px;border-bottom:1px solid #2C2822;flex:none">
+      <div style="font:500 22px 'IBM Plex Mono',monospace;color:#6E665B">‹</div>
+      <div style="flex:1;font:400 20px 'IBM Plex Mono',monospace;color:#9C9488;min-width:0">/volume1/media/<span style="color:#F0EBE3;font-weight:500">2026_shoots</span></div>
+      <div style="font:500 15px 'IBM Plex Mono',monospace;color:#9C9488">search</div>
+      <div style="font:500 15px 'IBM Plex Mono',monospace;color:#9C9488">sort: modified ↓</div>
+    </div>
+    <div style="display:grid;grid-template-columns:26px 62px 1fr 110px 160px 118px;align-items:center;gap:18px;padding:0 32px;height:42px;font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6E665B;border-bottom:1px solid #2C2822;flex:none"><span></span><span>TYPE</span><span>NAME</span><span>SIZE</span><span>MODIFIED</span><span>MODE</span></div>
+    <div style="flex:1;overflow:hidden">
+      <div style="display:grid;grid-template-columns:26px 62px 1fr 110px 160px 118px;align-items:center;gap:18px;padding:0 32px;height:72px;border-bottom:1px solid #1E1A16"><div style="width:24px;height:24px;border:1.5px solid #46403A"></div><div style="font:500 13px 'IBM Plex Mono',monospace;color:#3B6FE0">dir</div><div style="font-size:18px;font-weight:600">a_roll</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#6E665B">—</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#9C9488">Aug 11 09:04</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#6E665B">drwxr-xr-x</div></div>
+      <div style="display:grid;grid-template-columns:26px 62px 1fr 110px 160px 118px;align-items:center;gap:18px;padding:0 32px;height:72px;border-bottom:1px solid #1E1A16"><div style="width:24px;height:24px;border:1.5px solid #46403A"></div><div style="font:500 13px 'IBM Plex Mono',monospace;color:#3B6FE0">dir</div><div style="font-size:18px;font-weight:600">b_roll</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#6E665B">—</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#9C9488">Aug 10 18:41</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#6E665B">drwxr-xr-x</div></div>
+      <div style="display:grid;grid-template-columns:26px 62px 1fr 110px 160px 118px;align-items:center;gap:18px;padding:0 32px;height:72px;border-bottom:1px solid #1E1A16;box-shadow:inset 3px 0 0 #3B6FE0"><div style="width:24px;height:24px;background:#3B6FE0;display:flex;align-items:center;justify-content:center;font:700 13px 'Source Sans 3';color:#fff">✓</div><div style="font:500 13px 'IBM Plex Mono',monospace;color:#9C9488">mov</div><div style="font-size:18px;font-weight:600">A001_C012_0811KJ.mov</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#C4BCB0">14.2 GB</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#9C9488">Aug 11 08:52</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#6E665B">-rw-r--r--</div></div>
+      <div style="display:grid;grid-template-columns:26px 62px 1fr 110px 160px 118px;align-items:center;gap:18px;padding:0 32px;height:72px;border-bottom:1px solid #1E1A16;box-shadow:inset 3px 0 0 #3B6FE0"><div style="width:24px;height:24px;background:#3B6FE0;display:flex;align-items:center;justify-content:center;font:700 13px 'Source Sans 3';color:#fff">✓</div><div style="font:500 13px 'IBM Plex Mono',monospace;color:#9C9488">mov</div><div style="font-size:18px;font-weight:600">A001_C013_0811KJ.mov</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#C4BCB0">9.7 GB</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#9C9488">Aug 11 08:58</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#6E665B">-rw-r--r--</div></div>
+      <div style="display:grid;grid-template-columns:26px 62px 1fr 110px 160px 118px;align-items:center;gap:18px;padding:0 32px;height:72px;border-bottom:1px solid #1E1A16"><div style="width:24px;height:24px;border:1.5px solid #46403A"></div><div style="font:500 13px 'IBM Plex Mono',monospace;color:#9C9488">wav</div><div style="font-size:18px;font-weight:600">scratch_audio_take4.wav</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#C4BCB0">412 MB</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#9C9488">Aug 11 08:20</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#6E665B">-rw-r--r--</div></div>
+      <div style="display:grid;grid-template-columns:26px 62px 1fr 110px 160px 118px;align-items:center;gap:18px;padding:0 32px;height:72px;border-bottom:1px solid #1E1A16"><div style="width:24px;height:24px;border:1.5px solid #46403A"></div><div style="font:500 13px 'IBM Plex Mono',monospace;color:#C9803A">yml</div><div style="font-size:18px;font-weight:600">transcode.yml</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#C4BCB0">3.1 KB</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#9C9488">Aug 9 14:22</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#6E665B">-rw-rw-r--</div></div>
+      <div style="display:grid;grid-template-columns:26px 62px 1fr 110px 160px 118px;align-items:center;gap:18px;padding:0 32px;height:72px;border-bottom:1px solid #1E1A16"><div style="width:24px;height:24px;border:1.5px solid #46403A"></div><div style="font:500 13px 'IBM Plex Mono',monospace;color:#9C9488">jpg</div><div style="font-size:18px;font-weight:600">slate_ref.jpg</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#C4BCB0">2.4 MB</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#9C9488">Aug 9 11:07</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#6E665B">-rw-r--r--</div></div>
+      <div style="display:grid;grid-template-columns:26px 62px 1fr 110px 160px 118px;align-items:center;gap:18px;padding:0 32px;height:72px;border-bottom:1px solid #1E1A16"><div style="width:24px;height:24px;border:1.5px solid #46403A"></div><div style="font:500 13px 'IBM Plex Mono',monospace;color:#9C9488">log</div><div style="font-size:18px;font-weight:600">ingest.log</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#C4BCB0">88 KB</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#9C9488">Aug 8 22:15</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#6E665B">-rw-r--r--</div></div>
+      <div style="display:grid;grid-template-columns:26px 62px 1fr 110px 160px 118px;align-items:center;gap:18px;padding:0 32px;height:72px;border-bottom:1px solid #1E1A16"><div style="width:24px;height:24px;border:1.5px solid #46403A"></div><div style="font:500 13px 'IBM Plex Mono',monospace;color:#6E665B">lnk</div><div style="font-size:18px;font-weight:500;color:#9C9488">latest → 2026_shoots</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#6E665B">—</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#9C9488">Jul 30 10:00</div><div style="font:400 13px 'IBM Plex Mono',monospace;color:#6E665B">lrwxrwxrwx</div></div>
+    </div>
+    <div style="flex:none;padding:16px 32px;border-top:1px solid #2C2822;display:flex;align-items:center;gap:28px">
+      <div style="font:500 14px 'IBM Plex Mono',monospace;color:#9C9488;letter-spacing:.04em">2 SELECTED · 23.9 GB</div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:28px">
+        <div style="height:56px;display:flex;align-items:center;font-size:17px;color:#C4BCB0">Copy to…</div>
+        <div style="height:56px;display:flex;align-items:center;font-size:17px;color:#C4BCB0">Rename</div>
+        <div style="height:56px;display:flex;align-items:center;font-size:17px;color:#D08A6A">Delete</div>
+        <div style="height:56px;padding:0 26px;display:flex;align-items:center;background:#3B6FE0;color:#fff;font-size:17px;font-weight:600">Download</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="dv-scr">04 · Transfers</p>
+<div style="width:1194px;height:834px;background:#14120F;color:#F0EBE3;border-radius:14px;border:1px solid #2C2822;overflow:hidden;display:flex;flex-direction:column">
+  <div style="height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:500 12px 'IBM Plex Mono',monospace;color:#6E665B;flex:none"><span>9:41</span><span style="display:flex;gap:14px"><span>wifi</span><span>100%</span></span></div>
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;padding:16px 48px 22px;border-bottom:1px solid #2C2822">
+    <div><div style="font-size:40px;font-weight:600;letter-spacing:-.02em">Transfers</div></div>
+    <div style="display:flex;align-items:center;gap:32px;padding-bottom:8px"><div style="font:500 13px 'IBM Plex Mono',monospace;color:#9C9488">118 MB/s · 6 min left</div><div style="font-size:17px;color:#C4BCB0">Pause all</div><div style="font-size:17px;color:#C4BCB0">Clear finished</div></div>
+  </div>
+  <div style="padding:26px 48px 0;font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6E665B">ACTIVE · 2</div>
+  <div>
+    <div style="padding:22px 48px 20px;border-bottom:1px solid #1E1A16">
+      <div style="display:flex;align-items:baseline;gap:16px"><div style="font:600 13px 'IBM Plex Mono',monospace;color:#3B6FE0">↓ sftp</div><div style="font-size:20px;font-weight:600;flex:1">A001_C012_0811KJ.mov</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#C4BCB0">8.9 / 14.2 GB</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#9C9488;width:110px;text-align:right">118 MB/s</div><div style="font-size:17px;color:#C4BCB0;width:80px;text-align:right">Pause</div></div>
+      <div style="height:3px;background:#2C2822;margin-top:16px"><div style="width:63%;height:100%;background:#3B6FE0"></div></div>
+      <div style="display:flex;justify-content:space-between;font:400 13px 'IBM Plex Mono',monospace;color:#6E665B;margin-top:10px"><span>Studio NAS → On device / Ingest</span><span>63% · 46s</span></div>
+    </div>
+    <div style="padding:22px 48px 20px;border-bottom:1px solid #1E1A16">
+      <div style="display:flex;align-items:baseline;gap:16px"><div style="font:600 13px 'IBM Plex Mono',monospace;color:#C9803A">↑ nfs</div><div style="font-size:20px;font-weight:600;flex:1">deliverables_v3.zip</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#C4BCB0">1.1 / 4.8 GB</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#9C9488;width:110px;text-align:right">42 MB/s</div><div style="font-size:17px;color:#C4BCB0;width:80px;text-align:right">Pause</div></div>
+      <div style="height:3px;background:#2C2822;margin-top:16px"><div style="width:23%;height:100%;background:#C9803A"></div></div>
+      <div style="display:flex;justify-content:space-between;font:400 13px 'IBM Plex Mono',monospace;color:#6E665B;margin-top:10px"><span>On device → Archive v4 / cold/2026</span><span>23% · 1m 28s</span></div>
+    </div>
+  </div>
+  <div style="padding:26px 48px 0;font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6E665B">QUEUED · 1</div>
+  <div style="display:flex;align-items:center;gap:16px;padding:0 48px;height:80px;border-bottom:1px solid #1E1A16"><div style="font:600 13px 'IBM Plex Mono',monospace;color:#6E665B">↓ sftp</div><div style="font-size:19px;font-weight:500;flex:1">A001_C013_0811KJ.mov</div><div style="font:400 15px 'IBM Plex Mono',monospace;color:#6E665B">9.7 GB · waiting</div></div>
+  <div style="padding:26px 48px 0;font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6E665B">FINISHED · TODAY</div>
+  <div style="display:flex;align-items:center;gap:16px;padding:0 48px;height:76px;border-bottom:1px solid #1E1A16"><div style="font:600 14px 'IBM Plex Mono',monospace;color:#8FBF9A">✓</div><div style="font-size:18px;color:#C4BCB0;flex:1">transcode.yml</div><div style="font:400 14px 'IBM Plex Mono',monospace;color:#6E665B">3.1 KB · 09:12</div></div>
+  <div style="display:flex;align-items:center;gap:16px;padding:0 48px;height:76px;border-bottom:1px solid #1E1A16"><div style="font:600 14px 'IBM Plex Mono',monospace;color:#C9603A">!</div><div style="font-size:18px;color:#C4BCB0;flex:1">slate_ref.jpg <span style="font:400 14px 'IBM Plex Mono',monospace;color:#D08A6A">permission denied</span></div><div style="font-size:17px;color:#3B6FE0;font-weight:600">Retry</div></div>
+</div>
+
+<p class="dv-scr">05 · Settings</p>
+<div style="width:1194px;height:834px;background:#14120F;color:#F0EBE3;border-radius:14px;border:1px solid #2C2822;overflow:hidden;display:flex">
+  <div style="width:288px;flex:none;border-right:1px solid #2C2822;padding:34px 0">
+    <div style="font-size:26px;font-weight:600;padding:0 24px 22px">Settings</div>
+    <div style="height:62px;display:flex;align-items:center;padding:0 24px;font-size:17px;font-weight:600;box-shadow:inset 3px 0 0 #3B6FE0">Transfers</div>
+    <div style="height:62px;display:flex;align-items:center;padding:0 24px;font-size:17px;color:#9C9488">General</div>
+    <div style="height:62px;display:flex;align-items:center;padding:0 24px;font-size:17px;color:#9C9488">Text editor</div>
+    <div style="height:62px;display:flex;align-items:center;padding:0 24px;font-size:17px;color:#9C9488">Security &amp; keys</div>
+    <div style="height:62px;display:flex;align-items:center;padding:0 24px;font-size:17px;color:#9C9488">Storage</div>
+    <div style="height:62px;display:flex;align-items:center;padding:0 24px;font-size:17px;color:#9C9488">About</div>
+  </div>
+  <div style="flex:1;min-width:0">
+    <div style="padding:38px 48px 24px;border-bottom:1px solid #2C2822;font-size:34px;font-weight:600;letter-spacing:-.02em">Transfers</div>
+    <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:24px;padding:0 48px;height:104px;border-bottom:1px solid #1E1A16"><div><div style="font-size:18px">Parallel transfers</div><div style="font-size:14px;color:#6E665B;margin-top:4px">Higher values saturate slow links</div></div><div style="display:flex;gap:26px;align-items:center"><span style="font:400 18px 'IBM Plex Mono',monospace;color:#6E665B">1</span><span style="font:600 18px 'IBM Plex Mono',monospace;border-bottom:2px solid #3B6FE0;padding-bottom:4px">4</span><span style="font:400 18px 'IBM Plex Mono',monospace;color:#6E665B">8</span></div></div>
+    <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:24px;padding:0 48px;height:104px;border-bottom:1px solid #1E1A16"><div><div style="font-size:18px">Resume interrupted transfers</div><div style="font-size:14px;color:#6E665B;margin-top:4px">Uses partial-file offsets where the server allows it</div></div><div style="width:60px;height:34px;border-radius:17px;background:#3B6FE0;display:flex;align-items:center;justify-content:flex-end;padding:3px"><div style="width:28px;height:28px;border-radius:50%;background:#fff"></div></div></div>
+    <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:24px;padding:0 48px;height:104px;border-bottom:1px solid #1E1A16"><div><div style="font-size:18px">Only transfer on Wi-Fi</div><div style="font-size:14px;color:#6E665B;margin-top:4px">Queue holds until Wi-Fi returns</div></div><div style="width:60px;height:34px;border-radius:17px;background:#2C2822;display:flex;align-items:center;padding:3px"><div style="width:28px;height:28px;border-radius:50%;background:#8A8175"></div></div></div>
+    <div style="padding:30px 48px 12px;font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6E665B">CONFLICTS</div>
+    <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:24px;padding:0 48px;height:104px;border-bottom:1px solid #1E1A16;border-top:1px solid #1E1A16"><div style="font-size:18px">When a file already exists</div><div style="font:400 17px 'IBM Plex Mono',monospace;color:#9C9488">ask every time</div></div>
+    <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:24px;padding:0 48px;height:104px;border-bottom:1px solid #1E1A16"><div><div style="font-size:18px">Preserve modification times</div><div style="font-size:14px;color:#6E665B;margin-top:4px">NFS mounts only</div></div><div style="width:60px;height:34px;border-radius:17px;background:#3B6FE0;display:flex;align-items:center;justify-content:flex-end;padding:3px"><div style="width:28px;height:28px;border-radius:50%;background:#fff"></div></div></div>
+  </div>
+</div>
+
+</div>
+</div>
+</sc-if>
+</div>
+<p class="dv-next">Try next: "build out <a class="dv-oid" href="#1a">1a</a>'s text editor and file preview" · "make <a class="dv-oid" href="#1b">1b</a> a working prototype with tap-to-navigate" · "show the portrait / split-view layout"</p>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;treatment&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Both&quot;,&quot;Warm Slate only&quot;,&quot;Ledger only&quot;],&quot;default&quot;:&quot;Both&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Review&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const t = this.props.treatment ?? "Both";
+    return { showSlate: t !== "Ledger only", showLedger: t !== "Warm Slate only" };
+  }
+}
+</script>
+</body>
+</html>

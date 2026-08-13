@@ -67,3 +67,71 @@ quirks). Not worth it given `nfs-rs`.
 | `smb` | yes | 2.x–3.x | Heavier build (sspi + aws-lc-rs); younger. |
 | `pavao` 0.2.16 | no (libsmbclient) | SMB2/3 | Mature API but vendored Samba build is cross-compile-hostile on mobile. |
 | `smb2-client` | yes | SMB2 | Read-only, no query-dir. Insufficient. |
+
+## Media streaming to VLC — decision: localhost HTTP server + Range
+
+Date: 2026-08-12. Status: **spiked** (proven end-to-end against a real VLC
+3.0 install and ffprobe). Not yet wired into the app.
+
+Goal: play a remote file (SFTP/SMB/NFS/local) in VLC without first copying it
+to disk. VLC already speaks `sftp://`/`smb://` natively, but routing through
+our own localhost server keeps credentials in `mk-secrets` and works uniformly
+across all backends. So the shape is:
+
+```
+app -> VfsBackend::open_read (seekable) -> localhost HTTP + Range -> vlc http://127.0.0.1:PORT/...
+```
+
+### What the spike proved
+
+- **Wire protocol works.** A localhost server returning `200`/`206` with
+  `Accept-Ranges: bytes`, `Content-Range`, `Content-Length` feeds both ffprobe
+  (reads duration/streams) and VLC (demuxes + plays). VLC's HTTP access module
+  sends `GET` + `Range` and proceeds on a `206 Partial Content`.
+- **Range parsing** must handle all three forms — `bytes=N-`, `bytes=N-M`,
+  `bytes=-N` — and answer unsatisfiable ranges with `416` + `Content-Range:
+  bytes */total`. ~60 lines, directly reusable as the handler shape.
+
+### Gotchas found (each required a live test to surface)
+
+1. **tiny_http chunk-encodes any body ≥32 KiB by default**, *including* `206`
+   responses. A single-range `206` with `Transfer-Encoding: chunked` and no
+   `Content-Length` violates RFC 7233 and breaks seeking clients. Fix is
+   `.with_chunked_threshold(usize::MAX)` (or set `Content-Length` explicitly).
+   Any HTTP crate needs this class of check.
+2. **A single-threaded blocking server deadlocks on seeking clients.** ffprobe
+   opens a keep-alive connection, probes with a range-less `GET`, then
+   pipelines `bytes=0-` and a tail-seek; a blocking `respond()` that streams a
+   ~23 MB body stalls while the client has already moved on to the next seek.
+   VLC used separate connections and played fine, but ffprobe hung. Production
+   needs a **concurrent async server**, not a blocking accept loop.
+3. **`read_range` in the app is not a real range read.** Both
+   `SftpBackend::read_range` (`crates/mk-vfs/src/sftp.rs`) and
+   `LocalBackend::read_range` (`crates/mk-vfs/src/local.rs`) call
+   `read(path)`/`fs::read(path)`, loading the **entire file** into memory and
+   then slicing. `ReadStream` (`crates/mk-vfs/src/lib.rs`) has no `seek`. So
+   the current `VfsBackend` cannot do true random access without buffering
+   whole files — a blocker for large media. Fix: add `seek` to `ReadStream`
+   (both `russh_sftp::client::fs::File` and `std::fs::File` support it) and
+   implement `read_range` as open + seek + `read_exact`, not whole-file read.
+
+### Production recommendation
+
+- **Server:** `axum` on tokio (concurrent connections, pure Rust, cross-compiles
+  to iOS/Android); `hyper` + `hyper-util` if binary size matters. Not
+  `tiny_http` — its sync single-thread model is a dead-end for a media server.
+- **Routing:** URL = `/s/<token>/<host_id>/<url-encoded-remote-path>`. The
+  handler resolves host → `VfsBackend` via the existing `ConnectionPool`
+  (`app/src/main.rs:BackendAdapter`), then serves the seekable range.
+- **Security:** bind `127.0.0.1` only (never `0.0.0.0`); a random per-session
+  token in the path so other local processes / DNS-rebinding pages can't read
+  the user's files; iOS needs a localhost ATS exemption
+  (`NSAllowsLocalNetworking`), Android the `INTERNET` permission.
+- **Launch:** desktop `vlc http://127.0.0.1:PORT/...` (confirmed working).
+  Mobile is different — "open in VLC" becomes an Android `ACTION_VIEW` intent
+  or iOS `vlc-x-callback://` URL, and the app must stay foreground/alive to
+  keep serving.
+
+Effort estimate: ~2–3 days to add `ReadStream::seek` + true `read_range`, stand
+up the axum route, and wire the desktop launch; mobile intent handoff is a
+separate, platform-specific slice.

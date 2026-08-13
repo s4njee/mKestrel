@@ -13,6 +13,7 @@ path = "src/main.rs"
 [dependencies]
 mk-core.workspace = true
 mk-vfs.workspace = true
+mk-media.workspace = true
 mk-ui.workspace = true
 async-trait = "0.1"
 dioxus = { workspace = true, features = ["default", "desktop"] }

@@ -208,6 +208,11 @@ struct MockReader {
 
 #[async_trait]
 impl ReadStream for MockReader {
+    async fn seek(&mut self, pos: u64) -> Result<u64, VfsError> {
+        self.pos = pos;
+        Ok(pos)
+    }
+
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, VfsError> {
         let remaining = self.size.saturating_sub(self.pos) as usize;
         let n = remaining.min(buf.len());
