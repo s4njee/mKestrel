@@ -124,7 +124,21 @@ impl VfsBackend for LocalBackend {
     }
 
     async fn open_write(&self, path: &str) -> Result<Box<dyn WriteStream>, VfsError> {
-        let file = fs::File::create(path).map_err(|e| io_err(path, e))?;
+        self.open_write_at(path, 0).await
+    }
+
+    async fn open_write_at(&self, path: &str, offset: u64) -> Result<Box<dyn WriteStream>, VfsError> {
+        use std::io::Seek;
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(offset == 0)
+            .open(path)
+            .map_err(|e| io_err(path, e))?;
+        if offset > 0 {
+            file.seek(std::io::SeekFrom::Start(offset))
+                .map_err(|e| io_err(path, e))?;
+        }
         Ok(Box::new(FileWriter { file }))
     }
 
@@ -139,6 +153,10 @@ impl VfsBackend for LocalBackend {
     async fn chmod(&self, path: &str, mode: u32) -> Result<(), VfsError> {
         let perm = fs::Permissions::from_mode(mode);
         fs::set_permissions(path, perm).map_err(|e| io_err(path, e))
+    }
+
+    async fn symlink(&self, target: &str, link_path: &str) -> Result<(), VfsError> {
+        std::os::unix::fs::symlink(target, link_path).map_err(|e| io_err(link_path, e))
     }
 
     async fn remove(&self, path: &str) -> Result<(), VfsError> {
@@ -189,7 +207,6 @@ impl ReadStream for FileReader {
             .read(buf)
             .map_err(|e| VfsError::new(VfsErrorKind::Io, e.to_string()))
     }
-
     async fn seek(&mut self, pos: u64) -> Result<u64, VfsError> {
         use std::io::{Seek, SeekFrom};
         self.file
@@ -214,6 +231,12 @@ impl WriteStream for FileWriter {
         use std::io::Write;
         self.file
             .flush()
+            .map_err(|e| VfsError::new(VfsErrorKind::Io, e.to_string()))
+    }
+    async fn seek(&mut self, pos: u64) -> Result<u64, VfsError> {
+        use std::io::Seek;
+        self.file
+            .seek(std::io::SeekFrom::Start(pos))
             .map_err(|e| VfsError::new(VfsErrorKind::Io, e.to_string()))
     }
 }

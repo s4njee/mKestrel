@@ -187,6 +187,14 @@ fn TransfersSection() -> Element {
                 on: t.resume_interrupted,
                 onchange: move |_| { let mut s = store; s.toggle_resume(); },
             }
+            div { class: "setting-row",
+                div { class: "setting-label", "on conflict" }
+                span {
+                    class: "setting-link",
+                    onclick: move |_| { let mut s = store; s.cycle_overwrite_policy(); },
+                    "{t.overwrite_policy.as_str()} ›"
+                }
+            }
         }
     }
 }

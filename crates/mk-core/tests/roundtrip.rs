@@ -5,7 +5,8 @@ use mk_core::credentials::{Credentials, KeyType, KnownHost, SavedPassword, Secre
 use mk_core::host::{AuthMethod, Entry, EntryKind, Host, HostOptions, HostStatus, Protocol};
 use mk_core::job::{Direction, Job, JobState};
 use mk_core::settings::{
-    BrowsingSettings, SecuritySettings, Settings, SortDir, SortKey, SortSpec, TransferSettings,
+    BrowsingSettings, OverwritePolicy, SecuritySettings, Settings, SortDir, SortKey, SortSpec,
+    TransferSettings,
 };
 use proptest::prelude::*;
 
@@ -174,6 +175,7 @@ prop_compose! {
             id, direction, name, host_id, remote_path, local_path, bytes_done, bytes_total,
             rate_bytes_per_s: rate as f64, eta_seconds: eta, state, attempt, max_attempts,
             errno, message, finished_at, verified,
+            ..Job::default()
         }
     }
 }
@@ -214,7 +216,7 @@ prop_compose! {
         verified_at_secs in any_i64(),
         changed_since in any_optional(any_string()),
     ) -> KnownHost {
-        KnownHost { id, host, key_type, fingerprint, verified_at_secs, changed_since }
+        KnownHost { id, host, key_type, fingerprint, verified_at_secs, changed_since, pending_fingerprint: None }
     }
 }
 
@@ -257,6 +259,7 @@ fn any_transfer() -> impl Strategy<Value = TransferSettings> {
                 chunk_bytes: 1024 * 1024,
                 resume_interrupted: resume,
                 verify_sha256: verify,
+                overwrite_policy: OverwritePolicy::Ask,
             },
         )
 }
@@ -294,6 +297,7 @@ fn any_security() -> impl Strategy<Value = SecuritySettings> {
     (any::<bool>(), any::<bool>()).prop_map(|(biometric, strict)| SecuritySettings {
         unlock_with_biometrics: biometric,
         strict_host_key_checking: strict,
+        passphrase_cache_secs: 300,
     })
 }
 

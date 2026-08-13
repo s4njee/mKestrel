@@ -15,6 +15,7 @@ mk-core.workspace = true
 mk-vfs.workspace = true
 mk-media.workspace = true
 mk-ui.workspace = true
+mk-secrets.workspace = true
 async-trait = "0.1"
 dioxus = { workspace = true, features = ["default", "desktop"] }
 tokio = { version = "1", features = ["fs", "io-util", "sync", "time", "rt"] }

@@ -76,6 +76,10 @@ pub struct KnownHost {
     /// When set, the fingerprint changed on this date (renders in `error`
     /// with a REVIEW action until accepted).
     pub changed_since: Option<String>,
+    /// New fingerprint waiting for REVIEW (B-1). The stored `fingerprint`
+    /// remains the previously-trusted one until the user accepts.
+    #[serde(default)]
+    pub pending_fingerprint: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

@@ -520,6 +520,7 @@ pub fn jobs() -> Vec<Job> {
         message: None,
         finished_at: None,
         verified: None,
+        ..Job::default()
     });
     jobs.push(Job {
         id: "job-syslog".into(),
@@ -539,6 +540,7 @@ pub fn jobs() -> Vec<Job> {
         message: None,
         finished_at: None,
         verified: None,
+        ..Job::default()
     });
 
     // 3 waiting.
@@ -566,6 +568,7 @@ pub fn jobs() -> Vec<Job> {
             message: None,
             finished_at: None,
             verified: None,
+            ..Job::default()
         });
     }
 
@@ -588,6 +591,7 @@ pub fn jobs() -> Vec<Job> {
         message: Some("EACCES · /etc/nginx/nginx.conf not writable by deploy".into()),
         finished_at: Some(now + 180), // 09:44
         verified: None,
+        ..Job::default()
     });
 
     // 14 done today, all verified.
@@ -626,6 +630,7 @@ pub fn jobs() -> Vec<Job> {
             message: None,
             finished_at: Some(now - i64::from(i as u32) * 600 - 900),
             verified: Some(true),
+            ..Job::default()
         });
     }
 
@@ -699,6 +704,7 @@ pub fn credentials() -> Credentials {
             fingerprint: "SHA256:ab12…cd34".into(),
             verified_at_secs: now - 30 * day as i64,
             changed_since: None,
+            pending_fingerprint: None,
         },
         KnownHost {
             id: "kh-media-nas".into(),
@@ -707,6 +713,7 @@ pub fn credentials() -> Credentials {
             fingerprint: "SHA256:ef56…gh78".into(),
             verified_at_secs: now - 10 * day as i64,
             changed_since: None,
+            pending_fingerprint: None,
         },
         KnownHost {
             id: "kh-vault".into(),
@@ -715,6 +722,7 @@ pub fn credentials() -> Credentials {
             fingerprint: "SHA256:ij90…kl12".into(),
             verified_at_secs: now - 45 * day as i64,
             changed_since: None,
+            pending_fingerprint: None,
         },
         KnownHost {
             id: "kh-plex-scratch".into(),
@@ -723,6 +731,7 @@ pub fn credentials() -> Credentials {
             fingerprint: "SHA256:mn34…op56".into(),
             verified_at_secs: now - 7 * day as i64,
             changed_since: Some("04 Aug".into()),
+            pending_fingerprint: Some("SHA256:new…k9Wm".into()),
         },
     ];
 

@@ -202,6 +202,20 @@ mod tests {
         assert!(matches!(load(&path), Err(LoadError::NotFound)));
     }
 
+    #[test]
+    fn exported_store_contains_no_secret_material() {
+        let path = temp("nosecrets");
+        let state = StoredState::from_demo();
+        save(&path, &state).unwrap();
+        let raw = std::fs::read_to_string(&path).unwrap();
+        // The JSON store keeps opaque IDs and public fingerprints only.
+        assert!(!raw.contains("BEGIN OPENSSH PRIVATE KEY"));
+        assert!(!raw.contains("BEGIN RSA PRIVATE KEY"));
+        assert!(!raw.contains("-----BEGIN"));
+        assert!(!raw.contains("\"secret\""));
+        std::fs::remove_file(&path).unwrap();
+    }
+
     #[cfg(debug_assertions)]
     #[test]
     fn strip_fixtures_keeps_only_real_hosts_and_jobs() {

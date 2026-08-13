@@ -10,12 +10,52 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use mk_core::host::{Entry, Host};
+use mk_core::job::VerifyMethod;
+use mk_core::settings::OverwritePolicy;
 
 /// One progress update from a running transfer worker: total bytes moved so
 /// far. Emitted after each chunk and coalesced by the engine (E7-S1).
 #[derive(Debug, Clone, Copy)]
 pub struct TransferProgress {
     pub bytes_done: u64,
+    pub files_done: Option<u64>,
+    pub files_total: Option<u64>,
+    pub files_failed: Option<u64>,
+}
+
+/// Result of a finished transfer (single file or tree).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct TransferOutcome {
+    pub bytes_done: u64,
+    pub verified: Option<bool>,
+    pub verify_method: Option<VerifyMethod>,
+    pub notice: Option<String>,
+    pub files_done: u64,
+    pub files_total: u64,
+    pub files_failed: u64,
+}
+
+impl TransferOutcome {
+    pub fn skipped() -> Self {
+        Self {
+            files_done: 1,
+            files_total: 1,
+            ..Self::default()
+        }
+    }
+}
+
+/// Options the engine passes into GET/PUT (B-3..B-6, B-9).
+#[derive(Debug, Clone)]
+pub struct TransferOpts {
+    pub chunk_bytes: u64,
+    pub verify: bool,
+    pub resume: bool,
+    pub policy: OverwritePolicy,
+    pub tree: bool,
+    pub follow_symlinks: bool,
+    pub remote_mtime: Option<i64>,
+    pub remote_size: Option<u64>,
 }
 
 /// One line in a connect-time probe report (E8-S3), with a severity for the
@@ -38,32 +78,48 @@ pub trait FsBackend: Send + Sync + std::fmt::Debug {
     async fn chmod(&self, host: &Host, path: &str, mode: u32) -> Result<(), String>;
     async fn remove(&self, host: &Host, path: &str) -> Result<(), String>;
     /// Remote -> local (`get ↓`): stream `remote_path` into `local_path`,
-    /// sending `progress.bytes_done` after each chunk. `verify` hashes the
-    /// result on completion.
+    /// sending `progress.bytes_done` after each chunk.
     async fn download(
         &self,
         host: &Host,
         remote_path: &str,
         local_path: &str,
-        chunk_bytes: u64,
-        verify: bool,
+        opts: TransferOpts,
         cancel: Arc<AtomicBool>,
         progress: tokio::sync::mpsc::UnboundedSender<TransferProgress>,
-    ) -> Result<(), String>;
+    ) -> Result<TransferOutcome, String>;
     /// Local -> remote (`put ↑`): stream `local_path` into `remote_path`.
     async fn upload(
         &self,
         host: &Host,
         remote_path: &str,
         local_path: &str,
-        chunk_bytes: u64,
+        opts: TransferOpts,
         cancel: Arc<AtomicBool>,
         progress: tokio::sync::mpsc::UnboundedSender<TransferProgress>,
-    ) -> Result<(), String>;
+    ) -> Result<TransferOutcome, String>;
     /// Connect-time probe: one [`ProbeLine`] per step (resolve/tcp/auth).
     async fn probe(&self, host: &Host) -> Result<Vec<ProbeLine>, String>;
     /// Free and total bytes on the host's filesystem (`statfs`).
     async fn statfs(&self, host: &Host, path: &str) -> Result<(u64, u64), String>;
+
+    /// Persist an accepted host key (B-1 trust sheet / TRUST & SAVE).
+    fn accept_host_key(
+        &self,
+        _host: &str,
+        _port: u16,
+        _key_type: &str,
+        _fingerprint: &str,
+    ) -> Result<(), String> {
+        Ok(())
+    }
+    /// Accept a pending changed fingerprint (settings REVIEW).
+    fn review_host_key(&self, _id_or_host: &str) -> Result<(), String> {
+        Ok(())
+    }
+    fn remove_host_key(&self, _id_or_host: &str) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 /// Fallback backend so the UI can render standalone (empty listings).
@@ -92,11 +148,10 @@ impl FsBackend for EmptyBackend {
         _host: &Host,
         _remote_path: &str,
         _local_path: &str,
-        _chunk_bytes: u64,
-        _verify: bool,
+        _opts: TransferOpts,
         _cancel: Arc<AtomicBool>,
         _progress: tokio::sync::mpsc::UnboundedSender<TransferProgress>,
-    ) -> Result<(), String> {
+    ) -> Result<TransferOutcome, String> {
         Err("transfer backend not connected".into())
     }
     async fn upload(
@@ -104,10 +159,10 @@ impl FsBackend for EmptyBackend {
         _host: &Host,
         _remote_path: &str,
         _local_path: &str,
-        _chunk_bytes: u64,
+        _opts: TransferOpts,
         _cancel: Arc<AtomicBool>,
         _progress: tokio::sync::mpsc::UnboundedSender<TransferProgress>,
-    ) -> Result<(), String> {
+    ) -> Result<TransferOutcome, String> {
         Err("transfer backend not connected".into())
     }
     async fn probe(&self, _host: &Host) -> Result<Vec<ProbeLine>, String> {
@@ -149,4 +204,38 @@ impl StreamAction {
     pub fn call(&self, host_id: String, path: String) {
         (self.0)(host_id, path);
     }
+}
+
+/// Parsed host-key error so the UI can raise the trust sheet (B-1).
+#[derive(Debug, Clone, PartialEq)]
+pub struct HostKeyPrompt {
+    pub changed: bool,
+    pub host: String,
+    pub port: u16,
+    pub key_type: String,
+    pub fingerprint: String,
+    pub old: Option<String>,
+}
+
+pub fn parse_host_key_error(msg: &str) -> Option<HostKeyPrompt> {
+    let line = msg
+        .split("HOSTKEY ")
+        .nth(1)
+        .map(|s| format!("HOSTKEY {s}"))?;
+    let changed = line.contains("HOSTKEY changed") || line.contains("HOSTKEY revoked");
+    fn field<'a>(src: &'a str, key: &str) -> Option<&'a str> {
+        src.split_whitespace()
+            .find_map(|tok| tok.strip_prefix(&format!("{key}=")))
+    }
+    Some(HostKeyPrompt {
+        changed,
+        host: field(&line, "host").unwrap_or_default().to_string(),
+        port: field(&line, "port").and_then(|p| p.parse().ok()).unwrap_or(22),
+        key_type: field(&line, "type").unwrap_or("ssh-ed25519").to_string(),
+        fingerprint: field(&line, "fp")
+            .or_else(|| field(&line, "new"))
+            .unwrap_or_default()
+            .to_string(),
+        old: field(&line, "old").map(str::to_string),
+    })
 }

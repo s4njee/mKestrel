@@ -19,7 +19,10 @@ pub mod settings;
 pub mod store;
 pub mod tokens;
 
-pub use backend::{BackendFactory, EmptyBackend, FsBackend, PasswordVault, StreamAction};
+pub use backend::{
+    BackendFactory, EmptyBackend, FsBackend, PasswordVault, StreamAction, TransferOpts,
+    TransferOutcome, TransferProgress,
+};
 pub use browser::BrowserScreen;
 pub use components::*;
 pub use connections::ConnectionsScreen;

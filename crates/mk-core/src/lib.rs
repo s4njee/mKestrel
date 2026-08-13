@@ -20,8 +20,9 @@ pub mod settings;
 
 pub use credentials::{Credentials, KeyType, KnownHost, SavedPassword, SecretStorage, SshKey};
 pub use host::{AuthMethod, Entry, EntryKind, Host, HostOptions, HostStatus, Protocol};
-pub use job::{Direction, Job, JobState};
+pub use job::{Direction, Job, JobState, VerifyMethod};
 pub use persistence::{load, save, StoredState};
 pub use settings::{
-    BrowsingSettings, SecuritySettings, Settings, SortDir, SortKey, SortSpec, TransferSettings,
+    BrowsingSettings, OverwritePolicy, SecuritySettings, Settings, SortDir, SortKey, SortSpec,
+    TransferSettings,
 };
