@@ -400,12 +400,12 @@ fn FileTable() -> Element {
                         div {
                             class: "row",
                             onclick: move |_| { let mut s = store; s.go_up(); },
-                            div { class: "col-indicator" }
-                            span { class: "col-mode" }
+                            div { class: "col-check" }
+                            div { class: "col-tile" }
                             span { class: "col-name dotfile-name", "{parent_label}" }
                             span { class: "col-size" }
                             span { class: "col-mtime" }
-                            span { class: "col-owner" }
+                            span { class: "col-mode" }
                         }
                         if let Some(err) = listing_error {
                             div { class: "state-box",
@@ -540,9 +540,10 @@ fn EntryRow(entry: Entry) -> Element {
                     return;
                 }
                 let mut s = store;
-                // First tap selects; a second tap on the already-selected
-                // directory navigates into it.
-                if is_dir && s.is_selected(&click_name) {
+                // Tap a folder to open it; tap a file to select (the selection
+                // bar slides up). Selection of folders is via checkbox / long-
+                // press, per the touch-first design.
+                if is_dir {
                     s.open_dir(&click_name);
                 } else {
                     s.select_only(&click_name);
