@@ -710,8 +710,15 @@ body {
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border-ctl);
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--bg-alt);
+}
+
+/* MOUNTS scrolls independently so PLACES + capacity stay pinned and visible. */
+.mounts-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .rail-header {

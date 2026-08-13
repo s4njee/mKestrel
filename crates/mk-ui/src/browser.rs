@@ -290,9 +290,11 @@ fn HostsRail() -> Element {
 
     rsx! {
         div { class: "hosts-rail",
-            div { class: "rail-section-label", "MOUNTS" }
-            for host in &hosts {
-                HostRow { host: host.clone(), selected: host.id == selected }
+            div { class: "mounts-scroll",
+                div { class: "rail-section-label", "MOUNTS" }
+                for host in &hosts {
+                    HostRow { host: host.clone(), selected: host.id == selected }
+                }
             }
             div { class: "rail-section-label", "PLACES" }
             div { class: "place-row", span { "Recent" } }
@@ -307,6 +309,11 @@ fn HostsRail() -> Element {
                 if active > 0 {
                     span { class: "place-badge", "{active}" }
                 }
+            }
+            div {
+                class: "place-row",
+                onclick: move |_| { let mut s = store; s.show_settings(SettingsSection::Transfers); },
+                span { "Settings" }
             }
             RailCapacity {}
         }
